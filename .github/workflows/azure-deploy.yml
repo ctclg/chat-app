@@ -36,5 +36,4 @@ jobs:
       uses: azure/CLI@v1
       with:
        inlineScript: |
-          az webapp config set --resource-group rgtluchatbot --name tluchatbot --linux-fx-version "PYTHON|3.11" --startup-command "pip install -r requirements.txt && gunicorn --bind=0.0.0.0 --timeout 600 --worker-class uvicorn.workers.UvicornWorker main:app"
-          
+          az webapp config set --resource-group rgtluchatbot --name tluchatbot --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 --worker-class uvicorn.workers.UvicornWorker main:app"
