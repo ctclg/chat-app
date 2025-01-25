@@ -7,16 +7,30 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 import logging
+import sys
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 logger = logging.getLogger(__name__)
 
-# Load environment variables from .env file if it exists
+# Log startup information
+logger.info("Starting application...")
+logger.info(f"Python version: {sys.version}")
+logger.info(f"Current working directory: {os.getcwd()}")
+
+# Load environment variables
 load_dotenv(verbose=True)
+logger.info("Environment variables loaded")
 
 # Initialize FastAPI app
 app = FastAPI()
+logger.info("FastAPI app initialized")
 
 # Add CORS middleware
 app.add_middleware(
@@ -26,22 +40,51 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+logger.info("CORS middleware added")
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+try:
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+    logger.info("Static files mounted successfully")
+except Exception as e:
+    logger.error(f"Error mounting static files: {str(e)}")
 
 # Templates
-templates = Jinja2Templates(directory="templates")
+try:
+    templates = Jinja2Templates(directory="templates")
+    logger.info("Templates initialized successfully")
+except Exception as e:
+    logger.error(f"Error initializing templates: {str(e)}")
 
 # Initialize OpenAI client
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     logger.error("OPENAI_API_KEY not found in environment variables")
+else:
+    logger.info("OPENAI_API_KEY found")
 client = OpenAI(api_key=api_key)
+
+@app.get("/")
+async def root(request: Request):
+    logger.info("Handling root request")
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    logger.info("Health check endpoint called")
+    return {
+        "status": "healthy",
+        "python_version": sys.version,
+        "current_directory": os.getcwd(),
+        "environment_variables": list(os.environ.keys())
+    }
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Application startup event triggered")
+    # Log all environment variables (excluding sensitive ones)
+    env_vars = {k: v for k, v in os.environ.items() if 'key' not in k.lower() and 'password' not in k.lower()}
+    logger.info(f"Environment variables: {env_vars}")
 
 @app.get("/")
 async def root(request: Request):
