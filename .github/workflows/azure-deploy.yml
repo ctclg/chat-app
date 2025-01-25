@@ -1,0 +1,39 @@
+name: Deploy to Azure
+on:
+  push:
+    branches:
+      - main  # or your default branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Log in to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'tluchatbot'  # Replace with your app name
+        package: .
+
+    - name: Add startup command
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          az webapp config set --resource-group rgtluchatbot --name tluchatbot --startup-file "gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app"
