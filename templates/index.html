@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Application</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-container">
+            <form id="chat-form">
+                <input type="text" id="message-input" placeholder="Type your message...">
+                <button type="submit">Send</button>
+            </form>
+        </div>
+    </div>
+    <script src="{{ url_for('static', path='/js/main.js') }}"></script>
+</body>
+</html>
