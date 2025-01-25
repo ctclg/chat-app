@@ -1,0 +1,32 @@
+# Set variables (replace these values with your chosen names)
+RESOURCE_GROUP="chatapp-rg"
+LOCATION="westus2"  # or choose a location closer to you
+APP_NAME="tluschatapp"  # example: "mychatapp" (must be globally unique)
+
+# Create resource group
+az group create --name $RESOURCE_GROUP --location $LOCATION
+
+# Create App Service plan
+az appservice plan create \
+    --name $APP_NAME-plan \
+    --resource-group $RESOURCE_GROUP \
+    --sku B1 \
+    --is-linux
+
+# Create web app
+az webapp create \
+    --resource-group $RESOURCE_GROUP \
+    --plan $APP_NAME-plan \
+    --name $APP_NAME \
+    --runtime "PYTHON:3.12" \
+    --startup-file "startup.sh"
+
+# Set your OpenAI API key as a configuration setting
+az webapp config appsettings set \
+    --resource-group $RESOURCE_GROUP \
+    --name $APP_NAME \
+    --settings OPENAI_API_KEY="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"
+
+
+
+https://tluschatapp.azurewebsites.net
