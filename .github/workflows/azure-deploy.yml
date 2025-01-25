@@ -21,13 +21,18 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
-        # Create deployment package
-        mkdir -p deployment
-        cp -r * deployment/
-        cd deployment
+        # Create fresh deployment directory
+        rm -rf deployment || true
+        mkdir deployment
+        
+        # Copy all files except deployment directory
+        cp -r main.py requirements.txt static templates .env deployment/
+        
+        # Create startup command file
+        echo "gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000" > deployment/startup.txt
         
         # Ensure all dependencies are installed
-        pip freeze > requirements.txt
+        pip freeze > deployment/requirements.txt
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
