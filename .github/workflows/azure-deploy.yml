@@ -25,8 +25,8 @@ jobs:
         rm -rf deployment || true
         mkdir deployment
         
-        # Copy all files except deployment directory
-        cp -r main.py requirements.txt static templates .env deployment/
+        # Copy necessary files
+        cp -r main.py requirements.txt static templates deployment/
         
         # Create startup command file
         echo "gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000" > deployment/startup.txt

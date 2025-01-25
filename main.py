@@ -7,8 +7,8 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from .env file if it exists
+load_dotenv(verbose=True)
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -28,7 +28,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Templates
 templates = Jinja2Templates(directory="templates")
 
-# Initialize OpenAI client
+# Initialize OpenAI client - will use environment variable from Azure if .env is not present
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.get("/")
