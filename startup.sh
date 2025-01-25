@@ -1,1 +1,3 @@
-gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app
+#!/bin/bash
+cd /home/site/wwwroot
+gunicorn main:app --config gunicorn.conf.py
