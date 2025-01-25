@@ -5,6 +5,10 @@ from fastapi.responses import JSONResponse
 import openai
 import os
 from dotenv import load_dotenv
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -28,6 +32,8 @@ async def root(request: Request):
 @app.post("/chat")
 async def chat(message: str = Form(...)):
     try:
+        logger.info("Attempting to call OpenAI API")
+
         response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -37,5 +43,7 @@ async def chat(message: str = Form(...)):
         return JSONResponse(content={
             "response": response.choices[0].message.content
         })
+        logger.info("OpenAI API call successful")
     except Exception as e:
+        logger.error(f"Error calling OpenAI API: {str(e)}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
