@@ -2,7 +2,7 @@ name: Deploy to Azure
 on:
   push:
     branches:
-      - main  # or your default branch
+      - main
 
 jobs:
   build-and-deploy:
@@ -29,11 +29,11 @@ jobs:
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
-        app-name: 'tluchatbot'  # Replace with your app name
+        app-name: 'tluchatbot'  # your app name
         package: .
 
-    - name: Add startup command
+    - name: Configure startup command
       uses: azure/CLI@v1
       with:
-       inlineScript: |
-          az webapp config set --resource-group rgtluchatbot --name tluchatbot --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 --worker-class uvicorn.workers.UvicornWorker main:app"
+        inlineScript: |
+          az webapp config set --resource-group rgtluchatbot --name tluchatbot --startup-file "startup.sh"

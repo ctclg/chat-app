@@ -1,1 +1,4 @@
-gunicorn -w 4 -k uvicorn.workers.UvicornWorker your_main_file:app
+#!/bin/bash
+cd /home/site/wwwroot
+pip install -r requirements.txt
+gunicorn --bind=0.0.0.0:8000 --timeout 600 --worker-class uvicorn.workers.UvicornWorker main:app
