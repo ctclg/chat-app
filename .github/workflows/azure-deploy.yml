@@ -26,12 +26,8 @@ jobs:
         cp -r * deployment/
         cd deployment
         
-        # Create additional deployment files
-        echo "gunicorn==21.2.0" >> requirements.txt
-        echo "uvicorn[standard]==0.27.0" >> requirements.txt
-        
-        # Create startup command file
-        echo "gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind=0.0.0.0" > startup.sh
+        # Ensure all dependencies are installed
+        pip freeze > requirements.txt
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
