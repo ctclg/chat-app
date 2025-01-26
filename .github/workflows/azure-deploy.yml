@@ -29,11 +29,13 @@ jobs:
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
-        app-name: 'tluchatbot'  # your app name
+        app-name: 'tluchatbot'
         package: .
+        startup-command: 'gunicorn --bind=0.0.0.0:8000 --timeout 600 --worker-class uvicorn.workers.UvicornWorker main:app'
 
-    - name: Configure startup command
+    - name: Configure App Settings
       uses: azure/CLI@v1
       with:
         inlineScript: |
-          az webapp config set --resource-group rgtluchatbot --name tluchatbot --startup-file "startup.sh"
+          az webapp config set --resource-group rgtluchatbot --name tluchatbot --linux-fx-version "PYTHON|3.11"
+          az webapp config appsettings set --resource-group rgtluchatbot --name tluchatbot --settings PORT=8000

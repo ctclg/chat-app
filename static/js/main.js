@@ -18,16 +18,18 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
             },
             body: `message=${encodeURIComponent(message)}`
         });
-
+    
         const data = await response.json();
         
         if (response.ok) {
             addMessage(data.response, 'bot-message');
         } else {
-            addMessage('Error: ' + data.error, 'bot-message error');
+            console.error('Server error:', data);
+            addMessage(`Error: ${data.error || 'Unknown error occurred'}`, 'bot-message error');
         }
     } catch (error) {
-        addMessage('Error: Could not connect to the server', 'bot-message error');
+        console.error('Network error:', error);
+        addMessage('Error: Could not connect to the server. Check console for details.', 'bot-message error');
     }
 });
 
