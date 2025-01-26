@@ -7,8 +7,18 @@ az appservice plan create --name chatbotplan --resource-group rgtluchatbot --sku
 # Create the web app
 az webapp create --resource-group rgtluchatbot --plan chatbotplan --name tluchatbot --runtime "PYTHON|3.11"
 
-
 az ad sp create-for-rbac --name "chat-app" --role contributor --scopes /subscriptions/b4c86d66-a986-4c25-9345-81aca4d23b07/resourceGroups/rgtluchatbot --sdk-auth
 
 # Set your OpenAI API key
 az webapp config appsettings set --resource-group rgtluchatbot --name tluchatbot --settings OPENAI_API_KEY="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"
+
+
+Run locally with: 
+uvicorn main:app --reload
+
+Commit and push code to Github:
+git add .
+git commit -m "New version"
+git push origin main
+
+Deployment to Azure is done automatially!
