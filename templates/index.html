@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Application</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
 </head>
+
 <body>
     <div class="settings-container" id="settings-panel" style="display: none;">
         <h3>Chat Settings</h3>
@@ -45,14 +48,25 @@
             <button id="toggle-settings">Toggle Settings</button>
             <button id="clear-chat">Clear Conversation</button>
         </div>
-        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-messages" id="chat-messages">
+            <!-- Messages will be dynamically added here -->
+            <div id="typing-indicator" class="typing-indicator" style="display: none;">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
         <div class="chat-input-container">
             <form id="chat-form">
-                <input type="text" id="message-input" placeholder="Type your message...">
+                <textarea id="message-input"
+                    placeholder="Type your message... (Press Shift + Enter for new line, Enter to send)"
+                    rows="3"></textarea>
                 <button type="submit">Send</button>
             </form>
+            <div class="char-count" id="char-count">0 characters</div>
         </div>
     </div>
     <script src="{{ url_for('static', path='/js/main.js') }}"></script>
 </body>
+
 </html>
