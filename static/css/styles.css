@@ -34,15 +34,6 @@ p {
     word-wrap: break-word;
 }
 
-.line{
-    font-size: 0.9rem;
-    color:#5a6268;
-    height: 18px;
-    border-bottom: 1px solid;
-    border-bottom-color:#5a6268;
-    position: relative;
-}
-
 .message-timestamp {
     font-size: 0.75rem;
     color: #6c757d;
@@ -69,7 +60,8 @@ p {
     padding: 2px 5px;
     cursor: pointer;
     font-size: 12px;
-    color: #6c757d;
+    /*color: #6c757d;*/
+    color: lightgray;
 }
 
 .action-button:hover {
@@ -112,11 +104,29 @@ p {
     margin-right: 0;
 }
 
+.user-message-line{
+    font-size: 0.8rem;
+    color:floralwhite;
+    height: 18px;
+    border-bottom: 1px solid;
+    border-bottom-color:floralwhite;
+    position: relative;
+}
+
 .bot-message {
     background-color: #e9ecef;
     color: black;
     margin-right: 20%;
     margin-left: 0;
+}
+
+.bot-message-line{
+    font-size: 0.8rem;
+    color:#5a6268;
+    height: 18px;
+    border-bottom: 1px solid;
+    border-bottom-color:#5a6268;
+    position: relative;
 }
 
 .chat-input-container {
@@ -158,7 +168,7 @@ p {
     text-align: right;
     margin-top: 5px;
     position: absolute;
-    right: 20px;
+    right: 105px;
     bottom: 5px;
 }
 
@@ -297,4 +307,16 @@ button:hover {
     30% { 
         transform: translateY(-4px); 
     }
+}
+
+.model-info {
+    font-size: 0.7rem;
+    color: #6c757d;
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.user-message .model-info {
+    border-top-color: rgba(255, 255, 255, 0.2);
 }

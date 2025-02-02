@@ -9,7 +9,12 @@ document.addEventListener('DOMContentLoaded', () => {
             conversationHistory = JSON.parse(savedConversation);
             // Restore chat messages
             conversationHistory.forEach(msg => {
-                addMessage(msg.content, msg.role === 'user' ? 'user-message' : 'bot-message');
+                //addMessage(msg.content, msg.role === 'user' ? 'user-message' : 'bot-message');
+                addMessage(
+                    msg.content, 
+                    msg.role === 'user' ? 'user-message' : 'bot-message',
+                    msg.role === 'assistant' ? msg.model : null
+                );
             });
         } catch (e) {
             console.error('Error loading chat history:', e);
@@ -85,13 +90,18 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
         hideTypingIndicator();
         
         if (response.ok) {
+
             // Add bot message to chat
-            addMessage(data.response, 'bot-message');
+            const selectedModel = document.getElementById('model-select').value;
+            addMessage(data.response, 'bot-message', selectedModel);
+            //addMessage(data.response, 'bot-message');
             // Add bot message to conversation history
             conversationHistory.push({
                 role: 'assistant',
-                content: data.response
+                content: data.response,
+                model: selectedModel
             });
+
             // Save updated conversation to localStorage
             localStorage.setItem('chatHistory', JSON.stringify(conversationHistory));
         } else {
@@ -116,7 +126,7 @@ document.getElementById('message-input').addEventListener('input', function() {
     document.getElementById('char-count').textContent = `${charCount} characters`;
 });
 
-function addMessage(message, className) {
+function addMessage(message, className, model = null) {
     const messagesContainer = document.getElementById('chat-messages');
     const messageElement = document.createElement('div');
     messageElement.classList.add('message', className);
@@ -124,17 +134,38 @@ function addMessage(message, className) {
     // Create message content with Markdown support
     const contentDiv = document.createElement('div');
     contentDiv.classList.add('message-content');
-    contentDiv.innerHTML = marked.parse(message);
+    if (typeof marked !== 'undefined') {
+        contentDiv.innerHTML = marked.parse(message);
+    } else {
+        contentDiv.textContent = message;
+    }
+    //contentDiv.innerHTML = marked.parse(message);
 
+    // Add model info for bot messages
+    if (className === 'bot-message' && model) {
+        const modelInfo = document.createElement('div');
+        modelInfo.classList.add('model-info');
+        modelInfo.textContent = `Model: ${model}`;
+        //contentDiv.appendChild(modelInfo); // Show it has header instead, see below
+    }
+    
     // Add timestamp
     const timestamp = document.createElement('div');
     timestamp.classList.add('message-timestamp');
     timestamp.textContent = new Date().toLocaleTimeString();
 
     // Add line
-    const lineDiv = document.createElement('div');
-    lineDiv.classList.add('line');
-    lineDiv.textContent = "Rubrik";
+    if (className === 'bot-message') {
+        const lineDiv = document.createElement('div');
+        lineDiv.classList.add('bot-message-line');
+        lineDiv.textContent = model + ':';
+        messageElement.appendChild(lineDiv);
+    } else {
+        const lineDiv = document.createElement('div');
+        lineDiv.classList.add('user-message-line');
+        lineDiv.textContent = "User:";
+        messageElement.appendChild(lineDiv);
+    }
 
     // Add action buttons
     const actionsDiv = document.createElement('div');
@@ -170,7 +201,6 @@ function addMessage(message, className) {
 
     actionsDiv.appendChild(copyButton);
 
-    messageElement.appendChild(lineDiv);
     messageElement.appendChild(contentDiv);
     messageElement.appendChild(timestamp);
     messageElement.appendChild(actionsDiv);
