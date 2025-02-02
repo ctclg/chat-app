@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
             conversationHistory.forEach(msg => {
                 //addMessage(msg.content, msg.role === 'user' ? 'user-message' : 'bot-message');
                 addMessage(
-                    msg.content, 
+                    msg.content,
                     msg.role === 'user' ? 'user-message' : 'bot-message',
                     msg.role === 'assistant' ? msg.model : null
                 );
@@ -24,26 +24,26 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSettings();
 });
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const textarea = document.getElementById('message-input');
-    
+
     // Initial resize
     autoResize(textarea);
-    
+
     // Resize on input
-    textarea.addEventListener('input', function() {
+    textarea.addEventListener('input', function () {
         autoResize(this);
     });
 
     // Reset height after form submission
-    document.getElementById('chat-form').addEventListener('submit', function() {
+    document.getElementById('chat-form').addEventListener('submit', function () {
         setTimeout(() => {
             textarea.style.height = '50px'; // Reset to minimum height
         }, 0);
     });
 });
 
-document.getElementById('message-input').addEventListener('keydown', function(e) {
+document.getElementById('message-input').addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault(); // Prevent default to avoid newline
         const form = document.getElementById('chat-form');
@@ -54,10 +54,10 @@ document.getElementById('message-input').addEventListener('keydown', function(e)
 // Chat form submission
 document.getElementById('chat-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const messageInput = document.getElementById('message-input');
     const message = messageInput.value.trim();
-    
+
     if (!message) return;
 
     // Add user message to chat
@@ -84,11 +84,11 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
             method: 'POST',
             body: formData
         });
-    
+
         const data = await response.json();
-        
+
         hideTypingIndicator();
-        
+
         if (response.ok) {
 
             // Add bot message to chat
@@ -101,6 +101,9 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
                 content: data.response,
                 model: selectedModel
             });
+
+            //Reset char count
+            document.getElementById('char-count').textContent = `0 characters`;
 
             // Save updated conversation to localStorage
             localStorage.setItem('chatHistory', JSON.stringify(conversationHistory));
@@ -116,12 +119,12 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
 });
 
 // Add auto-resize functionality to the textarea
-document.getElementById('message-input').addEventListener('input', function() {
+document.getElementById('message-input').addEventListener('input', function () {
     this.style.height = 'auto';
     this.style.height = (this.scrollHeight) + 'px';
 });
 
-document.getElementById('message-input').addEventListener('input', function() {
+document.getElementById('message-input').addEventListener('input', function () {
     const charCount = this.value.length;
     document.getElementById('char-count').textContent = `${charCount} characters`;
 });
@@ -148,7 +151,7 @@ function addMessage(message, className, model = null) {
         modelInfo.textContent = `Model: ${model}`;
         //contentDiv.appendChild(modelInfo); // Show it has header instead, see below
     }
-    
+
     // Add timestamp
     const timestamp = document.createElement('div');
     timestamp.classList.add('message-timestamp');
@@ -194,13 +197,10 @@ function addMessage(message, className, model = null) {
         dislikeButton.classList.add('action-button');
         dislikeButton.innerHTML = '👎';
         dislikeButton.onclick = () => handleFeedback(message, 'negative');
-
         actionsDiv.appendChild(likeButton);
         actionsDiv.appendChild(dislikeButton);
     }
-
     actionsDiv.appendChild(copyButton);
-
     messageElement.appendChild(contentDiv);
     messageElement.appendChild(timestamp);
     messageElement.appendChild(actionsDiv);
@@ -225,12 +225,6 @@ function hideTypingIndicator() {
     }
 }
 
-// Settings toggle
-document.getElementById('toggle-settings').addEventListener('click', () => {
-    const settingsPanel = document.getElementById('settings-panel');
-    settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
-});
-
 // Clear chat
 document.getElementById('clear-chat').addEventListener('click', () => {
     if (confirm('Are you sure you want to clear the conversation?')) {
@@ -251,7 +245,6 @@ function saveSettings() {
     localStorage.setItem('chatSettings', JSON.stringify(settings));
 }
 
-// Update the loadSettings function to use DEFAULT_SETTINGS as fallback
 function loadSettings() {
     const settings = localStorage.getItem('chatSettings');
     if (settings) {
@@ -273,7 +266,7 @@ function loadSettings() {
 // Settings form submission
 document.getElementById('settings-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const settings = {
         model: document.getElementById('model-select').value,
         system_prompt: document.getElementById('system-prompt').value,
@@ -292,10 +285,11 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
 
         if (response.ok) {
             saveSettings();
-            alert('Settings updated successfully!');
+            //alert('Settings updated successfully!');
         } else {
             alert('Failed to update settings');
         }
+        modal.style.display = "none";
     } catch (error) {
         console.error('Error updating settings:', error);
         alert('Error updating settings');
@@ -304,16 +298,16 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
 
 function getModelCost(model) {
     const costs = {
-        'gpt-3.5-turbo': {input: 0.0015, output: 0.002},
-        'gpt-4': {input: 0.03, output: 0.06},
-        'gpt-4-turbo-preview': {input: 0.01, output: 0.03},
-        'gpt-3.5-turbo-16k': {input: 0.003, output: 0.004}
+        'gpt-3.5-turbo': { input: 0.0015, output: 0.002 },
+        'gpt-4': { input: 0.03, output: 0.06 },
+        'gpt-4-turbo-preview': { input: 0.01, output: 0.03 },
+        'gpt-3.5-turbo-16k': { input: 0.003, output: 0.004 }
     };
     return costs[model] || costs['gpt-3.5-turbo'];
 }
 
 // Add this to your model select change event
-document.getElementById('model-select').addEventListener('change', function() {
+document.getElementById('model-select').addEventListener('change', function () {
     const model = this.value;
     const costs = getModelCost(model);
     const costInfo = `Input: $${costs.input}/1K tokens, Output: $${costs.output}/1K tokens`;
@@ -340,7 +334,7 @@ function restoreDefaultSettings() {
 function autoResize(textarea) {
     // Reset height to allow shrinking
     textarea.style.height = 'auto';
-    
+
     // Set new height based on scroll height
     const newHeight = Math.min(textarea.scrollHeight, 200); // 200px max height
     textarea.style.height = newHeight + 'px';
@@ -350,7 +344,7 @@ function autoResize(textarea) {
 document.getElementById('restore-defaults').addEventListener('click', async () => {
     if (confirm('Are you sure you want to restore default settings?')) {
         restoreDefaultSettings();
-        
+
         // Update server-side settings
         try {
             const response = await fetch('/update-settings', {
@@ -364,7 +358,8 @@ document.getElementById('restore-defaults').addEventListener('click', async () =
             if (response.ok) {
                 // Clear localStorage settings
                 localStorage.removeItem('chatSettings');
-                alert('Settings restored to defaults successfully!');
+                modal.style.display = "none";
+                //alert('Settings restored to defaults successfully!');
             } else {
                 alert('Failed to restore default settings');
             }
@@ -394,7 +389,7 @@ async function handleFeedback(message, type) {
         notification.className = 'feedback-notification';
         notification.textContent = feedbackMsg;
         document.body.appendChild(notification);
-        
+
         // Remove notification after 3 seconds
         setTimeout(() => {
             notification.remove();
@@ -431,3 +426,36 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Get the modal
+var modal = document.getElementById("settings-modal");
+
+// Get the button that opens the modal
+var btn = document.getElementById("toggle-settings");
+
+// Get the <span> element that closes the modal
+var span = document.getElementsByClassName("close")[0];
+
+// When the user clicks the button, open the modal 
+btn.onclick = function () {
+    modal.style.display = "block";
+    loadSettings(); // Update form fields with saved settings
+}
+
+// When the user clicks on <span> (x), close the modal
+span.onclick = function () {
+    modal.style.display = "none";
+}
+
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function (event) {
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        modal.style.display = "none";
+    }
+})
