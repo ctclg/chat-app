@@ -61,13 +61,13 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
     if (!message) return;
 
     // Add user message to chat
-    addMessage(message, 'user-message');
+    addMessage(escapeHTML(message), 'user-message');
     messageInput.value = '';
 
     // Add user message to conversation history
     conversationHistory.push({
         role: 'user',
-        content: message
+        content: escapeHTML(message)
     });
 
     // Save to localStorage immediately after adding user message
@@ -459,3 +459,10 @@ document.addEventListener('keydown', (event) => {
         modal.style.display = "none";
     }
 })
+
+function escapeHTML(html) {
+    const text = document.createTextNode(html);
+    const div = document.createElement('div');
+    div.appendChild(text);
+    return div.innerHTML;
+}
