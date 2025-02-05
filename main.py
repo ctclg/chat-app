@@ -59,10 +59,11 @@ async def chat(message: str = Form(...), conversation: str = Form(default="[]"))
             conversation_list = []
         
         # Prepare messages for API call
-        messages = [{"role": "system", "content": DEFAULT_SETTINGS["system_prompt"]}]
+        messages = []
+        #messages = [{"role": "system", "content": DEFAULT_SETTINGS["system_prompt"]}]
         messages.extend(conversation_list)
         messages.append({"role": "user", "content": message})
-
+        #print(messages)
         response = client.chat.completions.create(
             model=DEFAULT_SETTINGS["model"],  # Now using the selected model
             messages=messages,
