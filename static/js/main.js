@@ -155,7 +155,9 @@ function addMessage(message, className, timestamp, model = null) {
     // Add timestamp
     const msgtimestamp = document.createElement('div');
     msgtimestamp.classList.add('message-timestamp');
-    msgtimestamp.textContent = timestamp
+    if (className != 'system-message'){
+        msgtimestamp.textContent = timestamp
+    }
 
     // Add line
     if (className === 'bot-message') {
@@ -171,7 +173,7 @@ function addMessage(message, className, timestamp, model = null) {
     } else {
         const lineDiv = document.createElement('div');
         lineDiv.classList.add('system-message-line');
-        lineDiv.textContent = "Applied system message for this conversation:";
+        lineDiv.textContent = "System message:";
         messageElement.appendChild(lineDiv);
     }
 
@@ -217,9 +219,7 @@ function addMessage(message, className, timestamp, model = null) {
     }
     actionsDiv.appendChild(copyButton);
     messageElement.appendChild(contentDiv);
-    if (className != 'system-message'){
-        messageElement.appendChild(msgtimestamp);
-    }
+    messageElement.appendChild(msgtimestamp);
     messageElement.appendChild(actionsDiv);
     messagesContainer.appendChild(messageElement);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;

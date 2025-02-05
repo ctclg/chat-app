@@ -10,7 +10,7 @@ h3 {
 }
 
 p {
-    margin-top: 15px;
+    margin-top: 5px;
     margin-bottom: 0px;
     white-space: pre-wrap;
 }
@@ -24,10 +24,11 @@ p {
 }
 
 .chat-messages {
-    height: calc(100vh - 250px); /* Adjust height based on your layout */
+    height: calc(100vh - 227px); /* Adjust height based on your layout */
     overflow-y: auto;
     padding: 20px;
-    padding-bottom: 80px; /* Add padding for the fixed input */
+    padding-bottom: 0px; 
+    padding-top: 0px; 
 }
 
 .message {
@@ -40,10 +41,10 @@ p {
 }
 
 .message-timestamp {
-    font-size: 0.75rem;
+    font-size: 0.6rem;
     color: #6c757d;
     position: absolute;
-    bottom: -18px;
+    bottom: -14px;
     right: 5px;
 }
 
@@ -123,9 +124,9 @@ p {
 }
 
 .user-message-line{
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color:floralwhite;
-    height: 18px;
+    height: 16px;
     border-bottom: 1px solid;
     border-bottom-color:floralwhite;
     position: relative;
@@ -139,9 +140,9 @@ p {
 }
 
 .bot-message-line{
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color:#5a6268;
-    height: 18px;
+    height: 16px;
     border-bottom: 1px solid;
     border-bottom-color:#5a6268;
     position: relative;
@@ -156,9 +157,9 @@ p {
 }
 
 .system-message-line{
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color:#5a6268;
-    height: 18px;
+    height: 16px;
     border-bottom: 1px solid;
     border-bottom-color:#5a6268;
     position: relative;
@@ -169,8 +170,11 @@ p {
     bottom: 0;           /* Align to the bottom */
     left: 0;             /* Align to the left */
     right: 0;            /* Align to the right */
-    padding: 20px;
-    height: 100px;
+    padding-top: 10px;
+    padding-bottom: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    height: 80px;
     border-top: 1px solid #dee2e6;
     background-color: #f0f0f0;
     z-index: 1000;       /* Ensure it stays on top of other content */
@@ -192,8 +196,8 @@ p {
     font-family: inherit;
     font-size: 14px;
     resize: none; /* Change from vertical to none */
-    min-height: 100px;
-    max-height: 100px;
+    min-height: 80px;
+    max-height: 80px;
     line-height: 1.5;
     box-sizing: border-box; /* Important for correct sizing */
 }
@@ -275,16 +279,6 @@ button:hover {
     background-color: #f8d7da;
 }
 
-/* Clear conversation button */
-#clear-chat {
-    margin-bottom: 10px;
-    background-color: #dc3545;
-}
-
-#clear-chat:hover {
-    background-color: #c82333;
-}
-
 .form-group select {
     width: 100%;
     padding: 8px;
@@ -323,7 +317,7 @@ button:hover {
     gap: 4px;
     width: fit-content;
     margin-left: 5px;
-    height: 37px;
+    height: 17px;
 }
 
 .typing-indicator span {
@@ -399,3 +393,4 @@ button:hover {
     text-decoration: none;
     cursor: pointer;
 }
+
