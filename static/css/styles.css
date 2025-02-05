@@ -52,8 +52,15 @@ p {
     position: absolute;
     right: 10px;
     top: 5px;
-    display: none;
+    display: inline-block;
 }
+
+@media only screen and (min-width: 768px) {
+    .message-actions {
+        display: none; 
+    }
+}
+
 
 .message:hover .message-actions {
     display: flex;
