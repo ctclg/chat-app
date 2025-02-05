@@ -1,8 +1,11 @@
 body {
     font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 20px;
     background-color: #f0f0f0;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
 }
 
 h3 {
@@ -15,20 +18,36 @@ p {
     white-space: pre-wrap;
 }
 
+.top-section {
+    background-color: #3498db;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    height: 30px;
+    justify-content: space-between;
+}
+
 .chat-container {
+    height: calc(100vh - 190px); /* Adjust height based on your layout */
     margin-left: 10%;
     margin-right: 10%;
+    margin-top: 15px;
+    margin-bottom: 15px;
     background-color: white;
     border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    flex: 1;
+    justify-content: center;
 }
 
 .chat-messages {
-    height: calc(100vh - 227px); /* Adjust height based on your layout */
     overflow-y: auto;
     padding: 20px;
-    padding-bottom: 0px; 
-    padding-top: 0px; 
+    padding-bottom: 0px;
+    padding-top: 0px;
+    height: 100%;
 }
 
 .message {
@@ -57,7 +76,7 @@ p {
 
 @media only screen and (min-width: 768px) {
     .message-actions {
-        display: none; 
+        display: none;
     }
 }
 
@@ -73,7 +92,7 @@ p {
     padding: 2px 5px;
     cursor: pointer;
     font-size: 12px;
-    color:#5a6268;
+    color: #5a6268;
 }
 
 .action-button:hover {
@@ -87,11 +106,11 @@ p {
     padding: 2px 5px;
     cursor: pointer;
     font-size: 12px;
-    color:white;
+    color: white;
 }
 
 .action-button-user:hover {
-    color:whitesmoke;
+    color: whitesmoke;
     background: none;
 }
 
@@ -102,14 +121,14 @@ p {
 }
 
 .message-content pre {
-    background-color: rgba(0,0,0,0.05);
+    background-color: rgba(0, 0, 0, 0.05);
     padding: 10px;
     border-radius: 5px;
     overflow-x: auto;
 }
 
 .message-content code {
-    background-color: rgba(0,0,0,0.05);
+    background-color: rgba(0, 0, 0, 0.05);
     padding: 2px 4px;
     border-radius: 3px;
 }
@@ -130,12 +149,12 @@ p {
     margin-right: 0;
 }
 
-.user-message-line{
+.user-message-line {
     font-size: 0.7rem;
-    color:floralwhite;
+    color: floralwhite;
     height: 16px;
     border-bottom: 1px solid;
-    border-bottom-color:floralwhite;
+    border-bottom-color: floralwhite;
     position: relative;
 }
 
@@ -146,83 +165,85 @@ p {
     margin-left: 0;
 }
 
-.bot-message-line{
+.bot-message-line {
     font-size: 0.7rem;
-    color:#5a6268;
+    color: #5a6268;
     height: 16px;
     border-bottom: 1px solid;
-    border-bottom-color:#5a6268;
+    border-bottom-color: #5a6268;
     position: relative;
 }
 
 .system-message {
-    background-color:transparent;
+    background-color: transparent;
     color: black;
     margin-right: 0;
     margin-left: 0;
     font-style: italic;
 }
 
-.system-message-line{
+.system-message-line {
     font-size: 0.7rem;
-    color:#5a6268;
+    color: #5a6268;
     height: 16px;
     border-bottom: 1px solid;
-    border-bottom-color:#5a6268;
+    border-bottom-color: #5a6268;
     position: relative;
 }
 
 .chat-input-container {
-    position: fixed;      /* Fix the position */
-    bottom: 0;           /* Align to the bottom */
-    left: 0;             /* Align to the left */
-    right: 0;            /* Align to the right */
-    padding-top: 10px;
-    padding-bottom: 20px;
-    padding-left: 20px;
-    padding-right: 20px;
-    height: 80px;
-    border-top: 1px solid #dee2e6;
+    height: 110px; /* Adjust the height of the top and bottom sections as needed */
     background-color: #f0f0f0;
-    z-index: 1000;       /* Ensure it stays on top of other content */
-    margin-left: 10%;
-    margin-right: 10%;
+    border-top: 1px solid #dee2e6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    bottom: 0px;
+    z-index: 100;
 }
+
+.chat-input-container textarea {
+    width: 80%;
+    padding: 10px;
+    margin: 10px;
+    box-sizing: border-box; /* Include padding in width calculation */
+  }
 
 #chat-form {
     display: flex;
     gap: 10px;
-    align-items: flex-start; /* Align items to top */
+    align-items: flex-start;
+    width: 80%
 }
 
 #message-input {
     flex: 1;
-    padding: 12px;
+    padding: 10px;
     border: 1px solid #dee2e6;
     border-radius: 5px;
     font-family: inherit;
     font-size: 14px;
-    resize: none; /* Change from vertical to none */
-    min-height: 80px;
-    max-height: 80px;
+    resize: none;
+    min-height: 75px;
+    max-height: 75px;
     line-height: 1.5;
-    box-sizing: border-box; /* Important for correct sizing */
+    box-sizing: border-box;
 }
 
 #message-input:focus {
     outline: none;
     border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 .char-count {
     font-size: 12px;
     color: #6c757d;
-    text-align: right;
     margin-top: 5px;
     position: absolute;
-    right: 105px;
-    bottom: 5px;
+    bottom: 2px;
+    margin-left: 14px;
+    width: 80%;
 }
 
 button {
@@ -246,12 +267,12 @@ button:hover {
     background-color: white;
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 60%;    
+    width: 60%;
 }
 
 .form-group {
@@ -317,14 +338,13 @@ button:hover {
 /* Typing indicator */
 .typing-indicator {
     margin-top: 10px !important;
-    background-color: #e9ecef;
     padding: 10px;
     border-radius: 15px;
     display: block;
     gap: 4px;
     width: fit-content;
     margin-left: 5px;
-    height: 17px;
+    height: 21px;
 }
 
 .typing-indicator span {
@@ -335,20 +355,24 @@ button:hover {
     animation: bounce 1.5s infinite;
 }
 
-.typing-indicator span:nth-child(2) { 
-    animation-delay: 0.2s; 
+.typing-indicator span:nth-child(2) {
+    animation-delay: 0.2s;
 }
 
-.typing-indicator span:nth-child(3) { 
-    animation-delay: 0.4s; 
+.typing-indicator span:nth-child(3) {
+    animation-delay: 0.4s;
 }
 
 @keyframes bounce {
-    0%, 60%, 100% { 
-        transform: translateY(0); 
+
+    0%,
+    60%,
+    100% {
+        transform: translateY(0);
     }
-    30% { 
-        transform: translateY(-4px); 
+
+    30% {
+        transform: translateY(-4px);
     }
 }
 
@@ -366,24 +390,33 @@ button:hover {
 
 /* The Modal (background) */
 .modal {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 1; /* Sit on top */
+    display: none;
+    /* Hidden by default */
+    position: fixed;
+    /* Stay in place */
+    z-index: 1000;
+    /* Sit on top */
     left: 0;
     top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    width: 100%;
+    /* Full width */
+    height: 100%;
+    /* Full height */
+    overflow: auto;
+    /* Enable scroll if needed */
+    background-color: rgba(0, 0, 0, 0.4);
+    /* Black w/ opacity */
 }
 
 /* Modal Content */
 .modal-content {
     background-color: #fefefe;
-    margin: 15% auto; /* 15% from the top and centered */
+    margin: 15% auto;
+    /* 15% from the top and centered */
     padding: 20px;
     border: 1px solid #888;
-    width: 80%; /* Could be more or less, depending on screen size */
+    width: 80%;
+    /* Could be more or less, depending on screen size */
 }
 
 /* The Close Button */
@@ -400,4 +433,3 @@ button:hover {
     text-decoration: none;
     cursor: pointer;
 }
-
