@@ -61,6 +61,7 @@ p {
     }
 }
 
+
 .message:hover .message-actions {
     display: flex;
     gap: 5px;
