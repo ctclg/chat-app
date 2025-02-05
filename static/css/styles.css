@@ -65,12 +65,25 @@ p {
     padding: 2px 5px;
     cursor: pointer;
     font-size: 12px;
-    /*color: #6c757d;*/
-    color: lightgray;
+    color:#5a6268;
 }
 
 .action-button:hover {
     color: #007bff;
+    background: none;
+}
+
+.action-button-user {
+    background: none;
+    border: none;
+    padding: 2px 5px;
+    cursor: pointer;
+    font-size: 12px;
+    color:white;
+}
+
+.action-button-user:hover {
+    color:whitesmoke;
     background: none;
 }
 
@@ -126,6 +139,23 @@ p {
 }
 
 .bot-message-line{
+    font-size: 0.8rem;
+    color:#5a6268;
+    height: 18px;
+    border-bottom: 1px solid;
+    border-bottom-color:#5a6268;
+    position: relative;
+}
+
+.system-message {
+    background-color:transparent;
+    color: black;
+    margin-right: 0;
+    margin-left: 0;
+    font-style: italic;
+}
+
+.system-message-line{
     font-size: 0.8rem;
     color:#5a6268;
     height: 18px;
@@ -289,10 +319,11 @@ button:hover {
     background-color: #e9ecef;
     padding: 10px;
     border-radius: 15px;
-    display: flex;
+    display: block;
     gap: 4px;
     width: fit-content;
     margin-left: 5px;
+    height: 37px;
 }
 
 .typing-indicator span {

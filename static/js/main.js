@@ -1,7 +1,11 @@
+window.onload = function() {
+    document.getElementById('message-input').focus();
+};
+
 // Store conversation history
 let conversationHistory = [];
 
-// Load conversation from localStorage on page load
+// Load conversation and settings from localStorage on page load
 document.addEventListener('DOMContentLoaded', () => {
     const savedConversation = localStorage.getItem('chatHistory');
     if (savedConversation) {
@@ -9,10 +13,12 @@ document.addEventListener('DOMContentLoaded', () => {
             conversationHistory = JSON.parse(savedConversation);
             // Restore chat messages
             conversationHistory.forEach(msg => {
-                //addMessage(msg.content, msg.role === 'user' ? 'user-message' : 'bot-message');
                 addMessage(
                     msg.content,
-                    msg.role === 'user' ? 'user-message' : 'bot-message',
+                    msg.role === 'user' ? 'user-message' : 
+                    msg.role === 'assistant' ? 'bot-message' :
+                    msg.role === 'system' ? 'system-message' : null,
+                    msg.timestamp,
                     msg.role === 'assistant' ? msg.model : null
                 );
             });
@@ -24,30 +30,13 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSettings();
 });
 
-document.addEventListener('DOMContentLoaded', function () {
-    const textarea = document.getElementById('message-input');
-
-    // Initial resize
-    autoResize(textarea);
-
-    // Resize on input
-    textarea.addEventListener('input', function () {
-        autoResize(this);
-    });
-
-    // Reset height after form submission
-    document.getElementById('chat-form').addEventListener('submit', function () {
-        setTimeout(() => {
-            textarea.style.height = '50px'; // Reset to minimum height
-        }, 0);
-    });
-});
-
+//Submit message on Enter key (but not with Shift key)
 document.getElementById('message-input').addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault(); // Prevent default to avoid newline
         const form = document.getElementById('chat-form');
         form.requestSubmit(); // This is more reliable than dispatchEvent
+        document.getElementById('message-input').focus();
     }
 });
 
@@ -60,14 +49,25 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
 
     if (!message) return;
 
-    // Add user message to chat
-    addMessage(escapeHTML(message), 'user-message');
+    // Add system message to chat and conversation history if it is empty
+    // Todo: Do not send system message if the model does not support it
+    // const selectedModel = document.getElementById('model-select').value;
+    if (conversationHistory.length === 0) {
+        addMessage(document.getElementById('system-prompt').value, 'system-message', formatDate(new Date()));
+        conversationHistory.push({
+            role: 'system',
+            content: document.getElementById('system-prompt').value,
+            timestamp: formatDate(new Date())
+        });
+    }
+    
+    // Add user message to chat and onversation history
+    addMessage(escapeHTML(message), 'user-message', formatDate(new Date()));
     messageInput.value = '';
-
-    // Add user message to conversation history
     conversationHistory.push({
         role: 'user',
-        content: escapeHTML(message)
+        content: escapeHTML(message),
+        timestamp: formatDate(new Date())
     });
 
     // Save to localStorage immediately after adding user message
@@ -79,7 +79,7 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
         const formData = new FormData();
         formData.append('message', message);
         formData.append('conversation', JSON.stringify(conversationHistory));
-
+        
         const response = await fetch('/chat', {
             method: 'POST',
             body: formData
@@ -93,12 +93,13 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
 
             // Add bot message to chat
             const selectedModel = document.getElementById('model-select').value;
-            addMessage(data.response, 'bot-message', selectedModel);
+            addMessage(data.response, 'bot-message', formatDate(new Date()), selectedModel);
             //addMessage(data.response, 'bot-message');
             // Add bot message to conversation history
             conversationHistory.push({
                 role: 'assistant',
                 content: data.response,
+                timestamp: formatDate(new Date()),
                 model: selectedModel
             });
 
@@ -107,6 +108,7 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
 
             // Save updated conversation to localStorage
             localStorage.setItem('chatHistory', JSON.stringify(conversationHistory));
+            document.getElementById('message-input').focus();
         } else {
             console.error('Server error:', data);
             addMessage(`Error: ${data.error || 'Unknown error occurred'}`, 'bot-message error');
@@ -129,7 +131,7 @@ document.getElementById('message-input').addEventListener('input', function () {
     document.getElementById('char-count').textContent = `${charCount} characters`;
 });
 
-function addMessage(message, className, model = null) {
+function addMessage(message, className, timestamp, model = null) {
     const messagesContainer = document.getElementById('chat-messages');
     const messageElement = document.createElement('div');
     messageElement.classList.add('message', className);
@@ -142,20 +144,18 @@ function addMessage(message, className, model = null) {
     } else {
         contentDiv.textContent = message;
     }
-    //contentDiv.innerHTML = marked.parse(message);
 
     // Add model info for bot messages
     if (className === 'bot-message' && model) {
         const modelInfo = document.createElement('div');
         modelInfo.classList.add('model-info');
         modelInfo.textContent = `Model: ${model}`;
-        //contentDiv.appendChild(modelInfo); // Show it has header instead, see below
     }
 
     // Add timestamp
-    const timestamp = document.createElement('div');
-    timestamp.classList.add('message-timestamp');
-    timestamp.textContent = new Date().toLocaleTimeString();
+    const msgtimestamp = document.createElement('div');
+    msgtimestamp.classList.add('message-timestamp');
+    msgtimestamp.textContent = timestamp
 
     // Add line
     if (className === 'bot-message') {
@@ -163,10 +163,15 @@ function addMessage(message, className, model = null) {
         lineDiv.classList.add('bot-message-line');
         lineDiv.textContent = model + ':';
         messageElement.appendChild(lineDiv);
-    } else {
+    } else if (className === 'user-message') {
         const lineDiv = document.createElement('div');
         lineDiv.classList.add('user-message-line');
         lineDiv.textContent = "User:";
+        messageElement.appendChild(lineDiv);
+    } else {
+        const lineDiv = document.createElement('div');
+        lineDiv.classList.add('system-message-line');
+        lineDiv.textContent = "Applied system message for this conversation:";
         messageElement.appendChild(lineDiv);
     }
 
@@ -176,10 +181,20 @@ function addMessage(message, className, model = null) {
 
     // Copy button
     const copyButton = document.createElement('button');
-    copyButton.classList.add('action-button');
+    if (className === 'user-message') {
+        copyButton.classList.add('action-button-user');
+    } else {
+        copyButton.classList.add('action-button');
+    }
     copyButton.innerHTML = '📋 Copy';
     copyButton.onclick = () => {
-        navigator.clipboard.writeText(message)
+        // get the div that contains the button
+        const buttonContainer = copyButton.parentElement;
+        // get the second previous sibling (should be the div you want to copy from)
+        const textContainer = buttonContainer.previousElementSibling.previousElementSibling;
+        // get the text from the div you want to copy from
+        const messagetocopy = textContainer.innerText;
+        navigator.clipboard.writeText(messagetocopy)
             .then(() => {
                 copyButton.innerHTML = '✓ Copied!';
                 setTimeout(() => copyButton.innerHTML = '📋 Copy', 2000);
@@ -202,7 +217,9 @@ function addMessage(message, className, model = null) {
     }
     actionsDiv.appendChild(copyButton);
     messageElement.appendChild(contentDiv);
-    messageElement.appendChild(timestamp);
+    if (className != 'system-message'){
+        messageElement.appendChild(msgtimestamp);
+    }
     messageElement.appendChild(actionsDiv);
     messagesContainer.appendChild(messageElement);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -212,7 +229,7 @@ function addMessage(message, className, model = null) {
 function showTypingIndicator() {
     const indicator = document.getElementById('typing-indicator');
     if (indicator) {
-        indicator.style.display = 'flex';
+        indicator.style.display = 'flex';//flex
         const messagesContainer = document.getElementById('chat-messages');
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
@@ -221,7 +238,7 @@ function showTypingIndicator() {
 function hideTypingIndicator() {
     const indicator = document.getElementById('typing-indicator');
     if (indicator) {
-        indicator.style.display = 'none';
+        indicator.style.display = 'block';//none
     }
 }
 
@@ -231,6 +248,7 @@ document.getElementById('clear-chat').addEventListener('click', () => {
         document.getElementById('chat-messages').innerHTML = '';
         conversationHistory = [];
         localStorage.removeItem('chatHistory');
+        document.getElementById('message-input').focus();
     }
 });
 
@@ -290,6 +308,7 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
             alert('Failed to update settings');
         }
         modal.style.display = "none";
+        document.getElementById('message-input').focus();
     } catch (error) {
         console.error('Error updating settings:', error);
         alert('Error updating settings');
@@ -330,16 +349,6 @@ function restoreDefaultSettings() {
     document.getElementById('max-tokens').value = DEFAULT_SETTINGS.max_tokens;
 }
 
-// Add this function to handle textarea auto-resize
-function autoResize(textarea) {
-    // Reset height to allow shrinking
-    textarea.style.height = 'auto';
-
-    // Set new height based on scroll height
-    const newHeight = Math.min(textarea.scrollHeight, 200); // 200px max height
-    textarea.style.height = newHeight + 'px';
-}
-
 // Add event listener for restore defaults button
 document.getElementById('restore-defaults').addEventListener('click', async () => {
     if (confirm('Are you sure you want to restore default settings?')) {
@@ -363,6 +372,7 @@ document.getElementById('restore-defaults').addEventListener('click', async () =
             } else {
                 alert('Failed to restore default settings');
             }
+            document.getElementById('message-input').focus();
         } catch (error) {
             console.error('Error restoring default settings:', error);
             alert('Error restoring default settings');
@@ -448,15 +458,16 @@ span.onclick = function () {
 }
 
 // When the user clicks anywhere outside of the modal, close it
-window.onclick = function (event) {
-    if (event.target == modal) {
-        modal.style.display = "none";
-    }
-}
+// window.onclick = function (event) {
+//     if (event.target == modal) {
+//         modal.style.display = "none";
+//     }
+// }
 
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
         modal.style.display = "none";
+        document.getElementById('message-input').focus();
     }
 })
 
@@ -465,4 +476,15 @@ function escapeHTML(html) {
     const div = document.createElement('div');
     div.appendChild(text);
     return div.innerHTML;
+}
+
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
