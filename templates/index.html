@@ -13,7 +13,6 @@
     <!-- The Modal -->
     <div id="settings-modal" class="modal">
         <!-- Modal content -->
-        <!-- <div class="modal-content">-->
         <div class="settings-container">
             <span class="close">&times;</span>
             <h3>Chat Settings</h3>
@@ -49,34 +48,33 @@
                 </div>
             </form>
         </div>
-        <!-- </div>-->
+    </div>
+    <div id="top-section" class="top-section">
+        <div style="float: left;"><button id="clear-chat">New Conversation</button></div>
+        <div style="float: right;"><button id="toggle-settings">System Settings</button></div>
     </div>
     <div class="chat-container">
-        <div style="display: flex;justify-content: space-between; padding: 10px; border-bottom: 1px solid #dee2e6; padding-bottom: 10px;">
-            <div style="float: left;"><button id="clear-chat">New Conversation</button></div>
-            <div style="float: right;"><button id="toggle-settings">System Settings</button></div>
-        </div>
         <div class="chat-messages" id="chat-messages">
             <!-- Messages will be dynamically added here -->
         </div>
-        <div class="chat-input-container">
-            <form id="chat-form">
-                <textarea id="message-input"
-                    placeholder="Type your message... (Press Shift + Enter for new line, Enter to send)"
-                    rows="3"></textarea>
-                <div>
-                    <div id="typing-indicator" class="typing-indicator" style="display: block;">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </div>
-                    <div>
-                        <button type="submit">Send</button>
-                    </div>
-                </div>
-            </form>
+    </div>
+    <div class="chat-input-container">
+        <form id="chat-form">
+            <textarea id="message-input"
+                placeholder="Type your message... (Press Shift + Enter for new line, Enter to send)"
+                rows="3"></textarea>
             <div class="char-count" id="char-count">0 characters</div>
-        </div>
+            <div>
+                <div id="typing-indicator" class="typing-indicator" style="display: block;">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <div>
+                    <button type="submit">Send</button>
+                </div>
+            </div>
+        </form>
     </div>
     <script src="{{ url_for('static', path='/js/main.js') }}"></script>
 </body>

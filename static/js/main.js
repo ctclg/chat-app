@@ -121,10 +121,10 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
 });
 
 // Add auto-resize functionality to the textarea
-document.getElementById('message-input').addEventListener('input', function () {
-    this.style.height = 'auto';
-    this.style.height = (this.scrollHeight) + 'px';
-});
+// document.getElementById('message-input').addEventListener('input', function () {
+//     this.style.height = 'auto';
+//     this.style.height = (this.scrollHeight) + 'px';
+// });
 
 document.getElementById('message-input').addEventListener('input', function () {
     const charCount = this.value.length;
@@ -159,7 +159,7 @@ function addMessage(message, className, timestamp, model = null) {
         msgtimestamp.textContent = timestamp
     }
 
-    // Add line
+    // Add header line
     if (className === 'bot-message') {
         const lineDiv = document.createElement('div');
         lineDiv.classList.add('bot-message-line');
@@ -204,19 +204,19 @@ function addMessage(message, className, timestamp, model = null) {
     };
 
     // Feedback buttons (for bot messages only)
-    if (className === 'bot-message') {
-        const likeButton = document.createElement('button');
-        likeButton.classList.add('action-button');
-        likeButton.innerHTML = '👍';
-        likeButton.onclick = () => handleFeedback(message, 'positive');
+    // if (className === 'bot-message') {
+    //     const likeButton = document.createElement('button');
+    //     likeButton.classList.add('action-button');
+    //     likeButton.innerHTML = '👍';
+    //     likeButton.onclick = () => handleFeedback(message, 'positive');
 
-        const dislikeButton = document.createElement('button');
-        dislikeButton.classList.add('action-button');
-        dislikeButton.innerHTML = '👎';
-        dislikeButton.onclick = () => handleFeedback(message, 'negative');
-        actionsDiv.appendChild(likeButton);
-        actionsDiv.appendChild(dislikeButton);
-    }
+    //     const dislikeButton = document.createElement('button');
+    //     dislikeButton.classList.add('action-button');
+    //     dislikeButton.innerHTML = '👎';
+    //     dislikeButton.onclick = () => handleFeedback(message, 'negative');
+    //     actionsDiv.appendChild(likeButton);
+    //     actionsDiv.appendChild(dislikeButton);
+    // }
     actionsDiv.appendChild(copyButton);
     messageElement.appendChild(contentDiv);
     messageElement.appendChild(msgtimestamp);
@@ -455,14 +455,8 @@ btn.onclick = function () {
 // When the user clicks on <span> (x), close the modal
 span.onclick = function () {
     modal.style.display = "none";
+    document.getElementById('message-input').focus();
 }
-
-// When the user clicks anywhere outside of the modal, close it
-// window.onclick = function (event) {
-//     if (event.target == modal) {
-//         modal.style.display = "none";
-//     }
-// }
 
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
