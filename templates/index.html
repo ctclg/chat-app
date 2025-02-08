@@ -1,3 +1,5 @@
+<!--index.html-->
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -8,73 +10,99 @@
     <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
 </head>
-
+<!-- 
+        <h1>Chat Application</h1>
+        <p>Welcome to the chat application! You can chat with the AI model by typing in the message box below. Press
+            "Enter" to send a message. You can also press "Shift + Enter" for a new line. Click on the "Settings" button
+            to change the model, system prompt, temperature, and max tokens. Click on the "New" button to start a new
+            conversation. Click on the "Save" button to save the conversation to a file. Click on the "Register" button
+            to register your email address for updates.</p>
+-->
 <body>
-    <!-- The Modal -->
-    <div id="settings-modal" class="modal">
-        <!-- Modal content -->
-        <div class="settings-container">
-            <span class="close">&times;</span>
-            <h3>Chat Settings</h3>
-            <form id="settings-form">
-                <div class="form-group">
-                    <label for="model-select">Model:</label>
-                    <select id="model-select">
-                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                        <option value="gpt-4">GPT-4</option>
-                        <option value="gpt-4o-mini">gpt-4o-mini</option>
-                        <option value="gpt-4-turbo-preview">GPT-4 Turbo</option>
-                        <option value="gpt-3.5-turbo-16k">GPT-3.5 Turbo 16K</option>
-                    </select>
+    <div class="page-container">
+        <!-- The Modal -->
+        <div id="settings-modal" class="modal">
+            <!-- Modal content -->
+            <div class="settings-container">
+                <span class="close">&times;</span>
+                <h3>Chat Settings</h3>
+                <form id="settings-form">
+                    <div class="form-group">
+                        <label for="model-select">Model:</label>
+                        <select id="model-select">
+                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                            <option value="gpt-4">GPT-4</option>
+                            <option value="gpt-4o-mini">gpt-4o-mini</option>
+                            <option value="gpt-4-turbo-preview">GPT-4 Turbo</option>
+                            <option value="gpt-3.5-turbo-16k">GPT-3.5 Turbo 16K</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <small id="cost-info" class="text-muted"></small>
+                    </div>
+                    <div class="form-group">
+                        <label for="system-prompt">System Prompt (for new conversations):</label>
+                        <textarea id="system-prompt" class="system-prompt"
+                            rows="3">You are a helpful assistant.</textarea>
+                    </div>
+                    <div style="display: flex;">
+                        <div class="form-group" style="width: 120px;">
+                            <label for="temperature">Temperature:</label>
+                            <input type="number" id="temperature" min="0" max="2" step="0.1" value="0.7">
+                        </div>
+                        <div class="form-group">
+                            <label for="max-tokens">Max Tokens:</label>
+                            <input type="number" id="max-tokens" min="1" max="4000" value="1000">
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit">Save Settings</button>
+                        <button type="button" id="restore-defaults" class="secondary-button">Restore Defaults</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Registration form (hidden initially) -->
+        <div id="registration-form" class="registration-form" style="display: none;">
+            <div class="registration-form-container">
+                <span class="close-regform">&times;</span>
+                <h3>Register</h3>
+                <div>
+                    <label for="email">Email:</label><br>
+                    <input type="email" id="email" required>
                 </div>
-                <div class="form-group">
-                    <small id="cost-info" class="text-muted"></small>
-                </div>
-                <div class="form-group">
-                    <label for="system-prompt">System Prompt (for new conversations):</label>
-                    <textarea id="system-prompt" class="system-prompt" rows="3">You are a helpful assistant.</textarea>
-                </div>
-                <div class="form-group">
-                    <label for="temperature">Temperature:</label>
-                    <input type="number" id="temperature" min="0" max="2" step="0.1" value="0.7">
-                </div>
-                <div class="form-group">
-                    <label for="max-tokens">Max Tokens:</label>
-                    <input type="number" id="max-tokens" min="1" max="4000" value="1000">
-                </div>
-                <div class="button-group">
-                    <button type="submit">Save Settings</button>
-                    <button type="button" id="restore-defaults" class="secondary-button">Restore Defaults</button>
+                <button id="register-submit">Submit</button>
+            </div>
+        </div>
+        <div id="top-section" class="top-section">
+            <div style="float: left;"><button id="clear-chat">New</button></div>
+            <div style="float: left;"><button id="save-conversation">Save</button></div>
+            <div style="float: left;"><button id="register-button">Register</button></div>
+            <div style="float: right;"><button id="toggle-settings">Settings</button></div>
+        </div>
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+                <!-- Messages will be dynamically added here -->
+            </div>
+        </div>
+        <div class="chat-input-container">
+            <form id="chat-form">
+                <textarea id="message-input"
+                    placeholder="Type your message... (Press Shift + Enter for new line, Enter to send)"
+                    rows="3"></textarea>
+                <div class="char-count" id="char-count">0 characters</div>
+                <div>
+                    <div id="typing-indicator" class="typing-indicator" style="display: block;">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div>
+                        <button type="submit">Send</button>
+                    </div>
                 </div>
             </form>
         </div>
-    </div>
-    <div id="top-section" class="top-section">
-        <div style="float: left;"><button id="clear-chat">New Conversation</button></div>
-        <div style="float: right;"><button id="toggle-settings">System Settings</button></div>
-    </div>
-    <div class="chat-container">
-        <div class="chat-messages" id="chat-messages">
-            <!-- Messages will be dynamically added here -->
-        </div>
-    </div>
-    <div class="chat-input-container">
-        <form id="chat-form">
-            <textarea id="message-input"
-                placeholder="Type your message... (Press Shift + Enter for new line, Enter to send)"
-                rows="3"></textarea>
-            <div class="char-count" id="char-count">0 characters</div>
-            <div>
-                <div id="typing-indicator" class="typing-indicator" style="display: block;">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-                <div>
-                    <button type="submit">Send</button>
-                </div>
-            </div>
-        </form>
     </div>
     <script src="{{ url_for('static', path='/js/main.js') }}"></script>
 </body>

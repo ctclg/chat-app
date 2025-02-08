@@ -1,3 +1,5 @@
+//main.js
+
 window.onload = function() {
     document.getElementById('message-input').focus();
 };
@@ -37,6 +39,27 @@ document.getElementById('message-input').addEventListener('keydown', function (e
         const form = document.getElementById('chat-form');
         form.requestSubmit(); // This is more reliable than dispatchEvent
         document.getElementById('message-input').focus();
+    }
+});
+
+document.getElementById('save-conversation').addEventListener('click', async () => {
+    try {
+        const response = await fetch('/save-conversation', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(conversationHistory) // Send conversation history for saving
+        });
+
+        if (response.ok) {
+            alert('Conversation saved successfully!');
+        } else {
+            alert('Failed to save conversation');
+        }
+    } catch (error) {
+        console.error('Error saving conversation:', error);
+        alert('Error saving conversation');
     }
 });
 
@@ -281,6 +304,48 @@ function loadSettings() {
     }
 }
 
+// Register button click event
+document.getElementById('register-button').addEventListener('click', function() {
+    document.getElementById('registration-form').style.display = 'block';
+    document.getElementById('email').focus();
+});
+
+// Registration form submit event
+document.getElementById('register-submit').addEventListener('click', async function() {
+    const email = document.getElementById('email').value.trim();
+
+    // Perform validation on the email address (you can add more validation as needed)
+
+    if (validateEmail(email)) {
+        try {
+            const response = await fetch('/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: email })
+            });
+
+            if (response.ok) {
+                alert('Confirmation email sent. Please check your inbox.');
+            } else {
+                alert('Failed to send confirmation email. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error sending registration request:', error);
+            alert('Error sending registration request.');
+        }
+    } else {
+        alert('Please enter a valid email address.');
+    }
+});
+
+// Email validation function
+function validateEmail(email) {
+    const re = /\S+@\S+\.\S+/;
+    return re.test(email);
+}
+
 // Settings form submission
 document.getElementById('settings-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -439,28 +504,39 @@ document.head.appendChild(style);
 
 // Get the modal
 var modal = document.getElementById("settings-modal");
-
 // Get the button that opens the modal
 var btn = document.getElementById("toggle-settings");
-
 // Get the <span> element that closes the modal
 var span = document.getElementsByClassName("close")[0];
-
 // When the user clicks the button, open the modal 
 btn.onclick = function () {
     modal.style.display = "block";
     loadSettings(); // Update form fields with saved settings
 }
-
 // When the user clicks on <span> (x), close the modal
 span.onclick = function () {
     modal.style.display = "none";
     document.getElementById('message-input').focus();
 }
-
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
         modal.style.display = "none";
+        document.getElementById('message-input').focus();
+    }
+})
+
+// Get the Registration form
+var regform = document.getElementById("registration-form");
+// Get the <span> element that closes the modal
+var spanregform = document.getElementsByClassName("close-regform")[0];
+// When the user clicks on <span> (x), close the modal
+spanregform.onclick = function () {
+    regform.style.display = "none";
+    document.getElementById('message-input').focus();
+}
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        regform.style.display = "none";
         document.getElementById('message-input').focus();
     }
 })
