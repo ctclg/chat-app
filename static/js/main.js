@@ -307,37 +307,28 @@ function loadSettings() {
 // Register button click event
 document.getElementById('register-button').addEventListener('click', function() {
     document.getElementById('registration-form').style.display = 'block';
-    document.getElementById('email').focus();
+    document.getElementById('username').focus();
 });
 
-// Registration form submit event
-document.getElementById('register-submit').addEventListener('click', async function() {
-    const email = document.getElementById('email').value.trim();
-
-    // Perform validation on the email address (you can add more validation as needed)
-
-    if (validateEmail(email)) {
-        try {
-            const response = await fetch('/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email: email })
-            });
-
-            if (response.ok) {
-                alert('Confirmation email sent. Please check your inbox.');
-            } else {
-                alert('Failed to send confirmation email. Please try again.');
-            }
-        } catch (error) {
-            console.error('Error sending registration request:', error);
-            alert('Error sending registration request.');
-        }
-    } else {
-        alert('Please enter a valid email address.');
-    }
+document.getElementById('registrationForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('/register', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert('User registered successfully!');
+        console.log(data);
+        // You can redirect to another page or perform additional actions here
+    })
+    .catch(error => {
+        alert('An error occurred during registration. Please try again.');
+        console.error(error);
+    });
 });
 
 // Email validation function

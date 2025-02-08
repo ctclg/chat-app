@@ -6,3 +6,4 @@ python-dotenv
 uvicorn
 gunicorn
 fastapi-mail
+azure-cosmos
