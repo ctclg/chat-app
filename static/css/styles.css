@@ -44,7 +44,7 @@ p {
 }
 
 .chat-container {
-    height: calc(100vh - 190px);
+    /*height: calc(100vh - 190px);*/
     /* Adjust height based on your layout */
     margin-left: 10%;
     margin-right: 10%;
@@ -326,7 +326,7 @@ button:hover {
 }
 
 .form-group textarea {
-    width: 100%;
+    width: 99%;
     border: 1px solid #dee2e6;
     border-radius: 5px;
     font-size: 14px;
@@ -515,19 +515,7 @@ button:hover {
     text-decoration: none;
     cursor: pointer;
 }
-/*
-@media only screen and (min-width: 700px) {
-    .message-actions {
-        display: none;
-    }
-}
 
-@media only screen and (max-height: 700px) {
-    .page-container {
-      max-height: 85%;
-    }
-  }
-*/
   @media (hover: none) {
     .page-container {
       /*background: lime;*/

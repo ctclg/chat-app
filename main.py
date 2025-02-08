@@ -10,59 +10,20 @@ from dotenv import load_dotenv
 import logging
 from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 import json
 from typing import List
-from fastapi import BackgroundTasks
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
-import secrets
+
+class UserRegistration(BaseModel):
+    username: str
+    email: str
+    password: str
 
 class ChatSettings(BaseModel):
     system_prompt: str
     model: str
     temperature: float
     max_tokens: int
-
-# User registration data model
-class UserRegistration(BaseModel):
-    email: str
-
-# Update the ConnectionConfig model
-class ConnectionConfig(BaseModel):
-    MAIL_USERNAME: str
-    MAIL_PASSWORD: str
-    MAIL_FROM: EmailStr
-    MAIL_PORT: int
-    MAIL_SERVER: str
-    MAIL_TLS: bool
-    MAIL_SSL: bool
-
-# Email configuration
-conf = ConnectionConfig(
-    MAIL_USERNAME = "thomas.lundborg@gmail.com",
-    MAIL_PASSWORD = "MCognAq1",
-    MAIL_FROM = "thomas.lundborg@gmail.com",
-    MAIL_PORT = 587,
-    MAIL_SERVER = "smtp.gmail.com",
-    MAIL_TLS = False,
-    MAIL_SSL = False
-)
-
-class MessageSchema(BaseModel):
-    subject: str
-    recipients: list[EmailStr]
-    body: str
-
-# Send confirmation email
-async def send_confirmation_email(email: str, confirmation_token: str):
-    message = MessageSchema(
-        subject="Confirm your email address",
-        recipients=[email],
-        body=f"Click the following link to confirm your email address: https://yourwebsite.com/confirm?token={confirmation_token}"
-    )
-
-    fm = FastMail(conf)
-    await fm.send_message(message)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -132,34 +93,11 @@ async def update_settings(settings: ChatSettings):
     DEFAULT_SETTINGS = settings.dict()
     return JSONResponse(content={"message": "Settings updated successfully"})
 
-# Register route to send confirmation email
 @app.post("/register")
-async def register_user(user_data: UserRegistration, background_tasks: BackgroundTasks):
-    # Generate a unique token for email confirmation
-    confirmation_token = secrets.token_urlsafe(32)
-    # Send confirmation email asynchronously
-    background_tasks.add_task(send_confirmation_email, user_data.email, confirmation_token)
-    
-    return {"message": "Confirmation email sent. Please check your inbox."}
-
-# User confirmation endpoint
-@app.get("/confirm")
-async def confirm_email(token: str):
-    # Verify the token and register the user
-    # Implement your logic to verify the token and register the user
-    return {"message": "Email confirmed. You are now registered."}
-
-@app.post("/save-conversation")
-async def save_conversation(conversation_data: List[dict]):
-    try:
-        # Implement logic to save conversation_data to Azure data store
-        # Example: Azure Blob Storage, Azure Cosmos DB, etc.
-        
-        return JSONResponse(content={"message": "Conversation saved successfully"})
-    except Exception as e:
-        logger.error(f"Error saving conversation: {str(e)}")
-        logger.exception("Full exception details:")
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+async def register_user(user_data: UserRegistration):
+    # Here you can implement your user registration logic, such as saving user data to a database
+    # For demonstration purposes, let's just return the received user data
+    return JSONResponse(content=user_data.dict())
 
 if __name__ == "__main__":
     import uvicorn
