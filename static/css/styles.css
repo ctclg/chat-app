@@ -531,11 +531,11 @@ button:hover {
   @media (hover: none) {
     .page-container {
       /*background: lime;*/
-      max-height: 85%;
+      max-height: 600px;
     }
   }
 
-  @media (hover: none) {
+  @media (hover: hover) {
     .message-actions {
         display: none;
     }
