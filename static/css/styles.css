@@ -268,11 +268,12 @@ p {
 .char-count {
     font-size: 12px;
     color: #6c757d;
-    margin-top: 5px;
+    margin-right: 200px;
     position: absolute;
     bottom: 2px;
-    margin-left: 14px;
+    z-index: 2000;
     width: 80%;
+    text-align: right;
 }
 
 button {
@@ -514,7 +515,7 @@ button:hover {
     text-decoration: none;
     cursor: pointer;
 }
-
+/*
 @media only screen and (min-width: 700px) {
     .message-actions {
         display: none;
@@ -524,5 +525,18 @@ button:hover {
 @media only screen and (max-height: 700px) {
     .page-container {
       max-height: 85%;
+    }
+  }
+*/
+  @media (hover: none) {
+    .page-container {
+      /*background: lime;*/
+      max-height: 85%;
+    }
+  }
+
+  @media (hover: none) {
+    .message-actions {
+        display: none;
     }
   }
