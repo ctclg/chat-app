@@ -526,3 +526,9 @@ button:hover {
       max-height: 85%;
     }
   }
+
+  @media (hover: none) {
+    .page-container {
+      background: lime;
+    }
+  }
