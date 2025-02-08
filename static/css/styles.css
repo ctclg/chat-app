@@ -40,7 +40,7 @@ p {
     align-items: center;
     justify-content: space-between;
     padding: 10px;
-    height: 30px;
+    max-height: 30px;
 }
 
 .chat-container {
@@ -88,18 +88,6 @@ p {
     top: 5px;
     display: inline-block;
 }
-
-@media only screen and (min-width: 700px) {
-    .message-actions {
-        display: none;
-    }
-}
-
-@media only screen and (max-height: 700px) {
-    .page-container {
-      height: 100%;
-    }
-  }
 
 .message:hover .message-actions {
     display: flex;
@@ -225,7 +213,7 @@ p {
 
 .chat-input-container textarea {
     width: 80%;
-    padding: 10px;
+    padding: 0px;
     margin: 10px;
     box-sizing: border-box;
     /* Include padding in width calculation */
@@ -526,3 +514,15 @@ button:hover {
     text-decoration: none;
     cursor: pointer;
 }
+
+@media only screen and (min-width: 700px) {
+    .message-actions {
+        display: none;
+    }
+}
+
+@media only screen and (max-height: 700px) {
+    .page-container {
+      max-height: 85%;
+    }
+  }
