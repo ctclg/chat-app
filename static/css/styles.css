@@ -4,7 +4,7 @@ html {
     margin: 0;
     padding: 0;
     height: 100%;
-  }
+}
 
 body {
     font-family: Arial, sans-serif;
@@ -30,8 +30,8 @@ p {
     display: flex;
     flex-direction: column;
     height: 100vh;
-  }
-  
+}
+
 .top-section {
     background-color: #3498db;
     color: #fff;
@@ -44,7 +44,8 @@ p {
 }
 
 .chat-container {
-    height: calc(100vh - 190px); /* Adjust height based on your layout */
+    height: calc(100vh - 190px);
+    /* Adjust height based on your layout */
     margin-left: 10%;
     margin-right: 10%;
     margin-top: 15px;
@@ -208,6 +209,18 @@ p {
     align-items: center;
     bottom: 0px;
     z-index: 100;
+    font-size: 16px;
+    /* Set the font size for the text area */
+    -webkit-text-size-adjust: 100%;
+    /* Prevent text size adjustment */
+    user-select: auto;
+    /* Allow user text selection */
+    -webkit-user-select: auto;
+    /* Allow user text selection */
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+    /* Disable tap highlight */
+    max-height: 100%;
+    /* Set maximum height for the text area */
 }
 
 .chat-input-container textarea {
@@ -269,7 +282,7 @@ p {
     color: #6c757d;
     margin-right: 200px;
     position: absolute;
-    bottom: 2px;
+    margin-top: 90px;
     z-index: 2000;
     width: 80%;
     text-align: right;
@@ -515,15 +528,50 @@ button:hover {
     cursor: pointer;
 }
 
-  @media (hover: none) {
-    .page-container {
-      /*background: lime;*/
-      max-height: 600px;
+@media (hover: none) {
+    .chat-container {
+        /*background: lime;*/
+        max-height: 65%;
+        margin-left: 2%;
+        margin-right: 2%;
     }
-  }
+}
 
-  @media (hover: hover) {
+@media (hover: none) {
+    #chat-form {
+        width: 95%;
+    }
+}
+
+@media (hover: none) {
+    .char-count {
+        margin-right: 140px;
+    }
+}
+
+@media (hover: none) {
+    .user-message {
+        margin-left: 0%;
+        margin-right: 0%;
+    }
+}
+
+@media (hover: none) {
+    .bot-message {
+        margin-left: 0%;
+        margin-right: 0%;
+    }
+}
+
+@media (hover: none) {
+    .system-message {
+        margin-left: 0%;
+        margin-right: 0%;
+    }
+}
+
+@media (hover: hover) {
     .message-actions {
         display: none;
     }
-  }
+}
