@@ -44,8 +44,7 @@ p {
 }
 
 .chat-container {
-    /*height: calc(100vh - 190px);*/
-    /* Adjust height based on your layout */
+    height: calc(100vh - 190px); /* Adjust height based on your layout */
     margin-left: 10%;
     margin-right: 10%;
     margin-top: 15px;
