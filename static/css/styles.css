@@ -531,7 +531,7 @@ button:hover {
 @media (hover: none) {
     .chat-container {
         /*background: lime;*/
-        max-height: 65%;
+        /*max-height: 65%;*/
         margin-left: 2%;
         margin-right: 2%;
     }
@@ -551,15 +551,13 @@ button:hover {
 
 @media (hover: none) {
     .user-message {
-        margin-left: 0%;
-        margin-right: 0%;
+        margin-left: 5%;
     }
 }
 
 @media (hover: none) {
     .bot-message {
-        margin-left: 0%;
-        margin-right: 0%;
+        margin-right: 5%;
     }
 }
 
