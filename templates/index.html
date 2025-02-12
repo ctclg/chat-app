@@ -9,8 +9,37 @@
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Chat Application</title>
     <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="/static/css/styles.css">
     <link rel="icon" type="image/png" href="/static/images/logo-favicon.png">
+    <link rel="apple-touch-icon" href="/static/images/logo-iphone-tr.png">
+    <script>
+        async function testProtectedEndpoint() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    throw new Error('No token found');
+                }
+        
+                const response = await fetch('/api/users/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+        
+                if (!response.ok) {
+                    throw new Error('Failed to access protected endpoint');
+                }
+        
+                const data = await response.json();
+                console.log('Protected endpoint response:', data);
+                alert('Successfully accessed protected endpoint!');
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message);
+            }
+        }
+        </script>
 </head>
 <!-- 
         <h1>Chat Application</h1>
@@ -83,8 +112,12 @@
         </div>
         <div id="top-section" class="top-section">
             <div style="float: left;"><button id="clear-chat">New</button></div>
-            <div style="float: left; display: none;"><button id="save-conversation">Save</button></div>
-            <div style="float: left; display: none;"><button id="register-button">Register</button></div>
+            <div style="float: left;"><button id="load-conversations">Open</button></div>
+            <div style="float: left;"><button id="save-conversation">Save</button></div>
+            <!--<div style="float: left;"><button onclick="register()">Register</button></div>-->
+            <!--<div style="float: left;"><button onclick="testProtectedEndpoint()">Test Protected Endpoint</button></div>-->
+            <div style="float: left;"><button id="logout" onclick="logout()">Logout</button></div>
+            <div style="float: right;"><button id="login" onclick="login()">Login</button></div>
             <div style="float: right;"><button id="toggle-settings">Settings</button></div>
         </div>
         <div class="chat-container">

@@ -151,6 +151,10 @@ p {
     margin-right: 0;
 }
 
+.user-message a {
+    color: white !important;
+}
+
 .user-message-line {
     font-size: 0.7rem;
     color: floralwhite;
@@ -561,4 +565,250 @@ button:hover {
         padding-left: 20px;
         padding-right: 20px;
     }    
+}
+
+.conversation-selector {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.conversation-selector-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.conversation-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+.conversation-item:hover {
+    background: #f5f5f5;
+}
+
+.conversation-preview {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.conversation-date {
+    font-size: 0.8em;
+    color: #999;
+}
+
+.conversation-selector-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.dialog-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.dialog-buttons button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.save-button {
+    background-color: #007bff;
+    color: white;
+}
+
+.cancel-button {
+    background-color: #6c757d;
+    color: white;
+}
+
+.conversation-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.conversation-preview {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.conversation-date {
+    font-size: 0.8em;
+    color: #999;
+}
+
+.folder-select-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.folder-select-container select {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.new-folder-button {
+    padding: 8px 16px;
+    width: 122px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.folder-section {
+    margin-bottom: 20px;
+}
+
+.folder-header {
+    font-weight: bold;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.conversation-item {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.conversation-item:hover {
+    background-color: #f8f9fa;
+}
+
+.conversation-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.conversation-preview {
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+}
+
+.conversation-date {
+    color: #999;
+    font-size: 0.8em;
+}
+
+.folder-select-container {
+    margin-bottom: 20px;
+}
+
+.folder-select-container select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.conversation-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.conversation-content {
+    flex-grow: 1;
+}
+
+.conversation-actions {
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.conversation-item:hover .conversation-actions {
+    opacity: 1;
+}
+
+.rename-btn, .delete-btn {
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.2s;
+}
+
+.rename-btn:hover {
+    color: #007bff;
+}
+
+.delete-btn:hover {
+    color: #dc3545;
+}
+
+.name-edit {
+    width: 100%;
+    padding: 4px;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+    font-size: inherit;
+}
+
+.conversation-name {
+    position: relative;
+}
+
+.name-text {
+    display: inline-block;
+    width: 100%;
 }

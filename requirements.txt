@@ -7,3 +7,5 @@ uvicorn
 gunicorn
 fastapi-mail
 azure-cosmos
+python-jose[cryptography]
+passlib[bcrypt]
