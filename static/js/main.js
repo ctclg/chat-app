@@ -440,9 +440,9 @@ async function showConversationSelector(conversations) {
                                     </div>
                                 </div>
                                 <div class="conversation-actions">
-                                    <button class="rename-btn" title="Rename">
+                                    <!--<button class="rename-btn" title="Rename">
                                         <i class="fas fa-edit"></i>
-                                    </button>
+                                    </button>-->
                                     <button class="delete-btn" title="Delete">
                                         <i class="fas fa-trash"></i>
                                     </button>
