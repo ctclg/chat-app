@@ -324,7 +324,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         logger.info("="*50)
         raise
 
-# Test protected endpoint
+# Get current user
 @app.get("/api/users/me")
 async def read_users_me(current_user = Depends(get_current_user)):
     return {

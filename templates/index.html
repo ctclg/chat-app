@@ -111,14 +111,16 @@
             </div>
         </div>
         <div id="top-section" class="top-section">
-            <div style="float: left;"><button id="clear-chat">New</button></div>
-            <div style="float: left;"><button id="load-conversations">Open</button></div>
-            <div style="float: left;"><button id="save-conversation">Save</button></div>
-            <!--<div style="float: left;"><button onclick="register()">Register</button></div>-->
-            <!--<div style="float: left;"><button onclick="testProtectedEndpoint()">Test Protected Endpoint</button></div>-->
-            <div style="float: left;"><button id="logout" onclick="logout()">Logout</button></div>
-            <div style="float: right;"><button id="login" onclick="login()">Login</button></div>
-            <div style="float: right;"><button id="toggle-settings">Settings</button></div>
+            <div class="button-container">
+                <button id="clear-chat">New</button>
+                <button id="load-conversations">Open</button>
+                <button id="save-conversation">Save</button>
+            </div>
+            <div class="button-container">
+                <button id="logout" onclick="logout()">Logout</button>
+                <button id="login" onclick="login()">Login</button>
+                <button id="toggle-settings">Settings</button>
+            </div>
         </div>
         <div class="chat-container">
             <div class="chat-messages" id="chat-messages">

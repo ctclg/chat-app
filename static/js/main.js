@@ -5,6 +5,26 @@ let conversationHistory = [];
 let currentConversationId = null;
 
 window.onload = function () {
+
+    const token = localStorage.getItem('token');
+    const tokenExpiration = localStorage.getItem('token_expiration');
+
+    // Check token expiration on page load
+    if (token && tokenExpiration) {
+        const currentTime = new Date().getTime();
+
+        if (currentTime > tokenExpiration) {
+            // Token has expired, clear the token
+            localStorage.removeItem('token');
+            localStorage.removeItem('token_expiration');
+            localStorage.removeItem('user_email');
+            console.log('Token has expired. Please login again.');
+        } else {
+            console.log('Token is still valid.');
+            // Optionally, you can refresh the token here if needed
+        }
+    }
+
     document.getElementById('message-input').focus();
     document.addEventListener('DOMContentLoaded', updateUIForAuthState);
     if (conversationHistory.length === 0) {
@@ -34,6 +54,36 @@ function updateUIForAuthState() {
 // Helper function to check if user is logged in
 function isUserLoggedIn() {
     return !!localStorage.getItem('token');
+}
+
+async function validateToken() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        return false;
+    }
+
+    try {
+        const response = await fetch('/api/users/me', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                localStorage.removeItem('currentConversationId');
+                localStorage.removeItem('token');
+                localStorage.removeItem('currentFolder');
+                return false;
+            }
+            throw new Error('Failed to validate token');
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Token validation error:', error);
+        return false;
+    }
 }
 
 // Load conversation and settings from localStorage on page load
@@ -169,36 +219,6 @@ async function saveConversation(name, folder) {
     }
 }
 
-async function validateToken() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        return false;
-    }
-
-    try {
-        const response = await fetch('/api/users/me', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) {
-            if (response.status === 401) {
-                localStorage.removeItem('currentConversationId');
-                localStorage.removeItem('token');
-                localStorage.removeItem('currentFolder');
-                return false;
-            }
-            throw new Error('Failed to validate token');
-        }
-
-        return true;
-    } catch (error) {
-        console.error('Token validation error:', error);
-        return false;
-    }
-}
-
 async function getConversations() {
     try {
         const token = localStorage.getItem('token');
@@ -247,6 +267,7 @@ async function showSaveDialog() {
     dialog.className = 'conversation-selector';
     dialog.innerHTML = `
         <div class="conversation-selector-content">
+            <span class="close">&times;</span>
             <h3>Save Conversation</h3>
             <div class="form-group">
                 <label for="conversation-name">Conversation Name:</label>
@@ -286,7 +307,14 @@ async function showSaveDialog() {
     document.body.appendChild(dialog);
 
     // Add event listeners
+    dialog.querySelector('.close').onclick = () => dialog.remove();
     dialog.querySelector('.cancel-button').onclick = () => dialog.remove();
+    dialog.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            dialog.remove();
+        }
+    });
+
     dialog.querySelector('.save-button').onclick = async () => {
         const name = document.getElementById('conversation-name').value.trim();
         const folderSelect = document.getElementById('folder-select');
@@ -382,12 +410,13 @@ async function checkConversationExists(name, folder) {
 
 function getDefaultConversationName() {
     // Get the first non-system message content
-    const firstMessage = conversationHistory.find(msg => msg.role !== 'system');
+    //const firstMessage = conversationHistory.find(msg => msg.role !== 'system');
+    const firstMessage = conversationHistory[1];
     if (firstMessage) {
-        // Use the first 30 characters of the message as default name
-        return firstMessage.content.substring(0, 30) + (firstMessage.content.length > 30 ? '...' : '');
+        // Use the first 50 characters of the message as default name
+        return firstMessage.content.substring(0, 70) + (firstMessage.content.length > 70 ? '...' : '');
     }
-    return `Conversation ${new Date().toLocaleString()}`;
+    return `Conversation ${formatDate(new Date())}`;
 }
 
 document.getElementById('load-conversations').addEventListener('click', async () => {
@@ -413,9 +442,12 @@ async function showConversationSelector(conversations) {
 
     const dialog = document.createElement('div');
     dialog.className = 'conversation-selector';
+    dialog.tabIndex = 0; // Add tabindex to make dialog focusable
     dialog.innerHTML = `
         <div class="conversation-selector-content">
+            <span class="close">&times;</span>
             <h3>Select a Conversation</h3>
+            <label for="folder-filter">Folder:</label>
             <div class="folder-select-container">
                 <select id="folder-filter">
                     <option value="">All Folders</option>
@@ -436,7 +468,7 @@ async function showConversationSelector(conversations) {
                                         <input type="text" class="name-edit" value="${escapeHTML(conv.name)}" style="display: none;">
                                     </div>
                                     <div class="conversation-date">
-                                        ${new Date(conv.created_at).toLocaleString()}
+                                        ${formatDate(new Date(conv.updated_at))}
                                     </div>
                                 </div>
                                 <div class="conversation-actions">
@@ -459,8 +491,17 @@ async function showConversationSelector(conversations) {
     document.body.appendChild(dialog);
 
     // Add event listeners
+    dialog.querySelector('.close').onclick = () => dialog.remove();
     dialog.querySelector('.close-selector').onclick = () => dialog.remove();
-
+    dialog.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            dialog.remove();
+        }
+    });
+    
+    // Set focus on the dialog when it is created
+    dialog.focus();
+    
     // Folder filter functionality
     const folderFilter = dialog.querySelector('#folder-filter');
     folderFilter.addEventListener('change', (e) => {
