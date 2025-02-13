@@ -40,6 +40,16 @@ p {
     max-height: 30px;
 }
 
+.button-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+.button-container button {
+    margin-right: 5px;
+    margin-right: 5px;
+}
+
 .chat-container {
     /* Adjust height based on your layout */
     margin-left: 10%;
@@ -287,7 +297,7 @@ p {
 }
 
 button {
-    padding: 10px 10px;
+    padding: 6px 10px;
     background-color: #007bff;
     color: white;
     border: none;
@@ -385,7 +395,7 @@ button:hover {
     gap: 4px;
     width: fit-content;
     margin-left: 5px;
-    height: 21px;
+    height: 28px;
 }
 
 .typing-indicator span {
@@ -590,6 +600,10 @@ button:hover {
     overflow-y: auto;
 }
 
+.conversation-selector-content label {
+    font-weight: bold;
+}
+
 .conversation-item {
     padding: 10px;
     border-bottom: 1px solid #eee;
@@ -706,8 +720,10 @@ button:hover {
 
 .folder-header {
     font-weight: bold;
-    padding: 10px;
-    background-color: #f8f9fa;
+    padding: 4px;
+    padding-left: 10px;
+    color: white;
+    background-color: #28a745;
     border-radius: 4px;
     margin-bottom: 10px;
 }
@@ -750,6 +766,7 @@ button:hover {
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
+    font-size: 14px;
 }
 
 .conversation-item {
@@ -770,7 +787,7 @@ button:hover {
 
 .conversation-actions {
     display: flex;
-    gap: 8px;
+    gap: 0px;
     opacity: 0;
     transition: opacity 0.2s;
 }
@@ -781,6 +798,7 @@ button:hover {
 
 .rename-btn, .delete-btn {
     background: none;
+    min-width: 20px !important; 
     border: none;
     padding: 4px 8px;
     cursor: pointer;
@@ -790,14 +808,16 @@ button:hover {
 
 .rename-btn:hover {
     color: #007bff;
+    background: none !important;
 }
 
 .delete-btn:hover {
     color: #dc3545;
+    background: none !important;
 }
 
 .name-edit {
-    width: 100%;
+    width: 95%;
     padding: 4px;
     border: 1px solid #007bff;
     border-radius: 4px;
