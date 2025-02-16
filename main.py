@@ -1,6 +1,6 @@
 #main.py
 
-import json, logging, openai, os, secrets, uuid, anthropic
+import json, logging, openai, os, secrets, uuid, anthropic, asyncio
 from azure.cosmos import CosmosClient, PartitionKey
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
@@ -100,6 +100,8 @@ cosmos_client = CosmosClient.from_connection_string(os.getenv("COSMOS_CONNECTION
 database = cosmos_client.get_database_client("chat_app")
 usercontainer = database.get_container_client("users")
 conversationcontainer = database.get_container_client("conversations")
+tokencontainer = database.get_container_client("tokens")
+
 
 DEFAULT_SETTINGS = {
     "system_prompt": os.getenv("SYSTEM_PROMPT"),
@@ -148,6 +150,8 @@ async def send_verification_email(email: str, verification_token: str):
     
     {verification_url}
     
+    This link will expire in 1 hour.
+
     If you didn't request this verification, please ignore this email.
     """
     
@@ -159,8 +163,6 @@ async def send_verification_email(email: str, verification_token: str):
     )
 
     await fast_mail.send_message(message=message_obj)
-
-verification_tokens = {}  # Dictionary to store verification tokens
 
 @app.get("/settings")
 async def get_settings():
@@ -234,9 +236,6 @@ async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 # Register user
-# Define a global dictionary to store verification tokens
-verification_tokens: Dict[str, str] = {}
-
 @app.post("/api/register")
 async def register(user: UserRegistration):
     logger.info(f"Registration attempt for email: {user.email}")
@@ -255,20 +254,24 @@ async def register(user: UserRegistration):
             raise HTTPException(status_code=400, detail="Email already registered")
 
         # Generate a unique verification token
-        verification_token = secrets.token_urlsafe(16)  # Generate a random token
-        verification_tokens[verification_token] = user.email
+        verification_token = secrets.token_urlsafe(16)
+        
+        # Store token in Cosmos DB with expiration time
+        token_doc = {
+            "id": verification_token,
+            "email": user.email,
+            "type": "verification_token",
+            "created_at": datetime.utcnow().isoformat(),
+            "expires_at": (datetime.utcnow() + timedelta(hours=1)).isoformat()
+        }
+        tokencontainer.create_item(body=token_doc)
 
-        logger.info(f"Prepare sending Email verification for email: {user.email}")
         # Send email with verification link
         await send_verification_email(user.email, verification_token)
 
-        logger.info(f"Email verification sent for email: {user.email}")
         return {"message": "Email verification sent"}
 
-    except HTTPException:
-        raise
     except Exception as e:
-        print(f"Registration error: {str(e)}")  # For debugging
         logger.error(f"Registration error for {user.email}: {str(e)}")
         raise HTTPException(
             status_code=500,
@@ -333,46 +336,121 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         logger.info("="*50)
         raise
 
-reset_password_tokens = {}  # Dictionary to store reset password tokens
-
 @app.post("/api/request-reset-password")
 async def request_reset_password(email: str):
-    logger.info("Hogachaka")
-    user = get_user_by_email(email)  # Function to retrieve user details from the database
-    logger.info(user)
+    logger.info(f"Password reset requested for email: {email}")
+    user = get_user_by_email(email)
+    
     if user:
-        reset_token = secrets.token_urlsafe(16)  # Generate a random token
-        reset_password_tokens[reset_token] = email
-        # Send reset password email with the token
-        await send_reset_password_email(email, reset_token)
-        return {"message": "Reset password email sent. Check your mail!"}
+        reset_token = secrets.token_urlsafe(16)
+        
+        # Store reset token in Cosmos DB
+        token_doc = {
+            "id": reset_token,
+            "email": email,
+            "type": "reset_token",
+            "created_at": datetime.utcnow().isoformat(),
+            "expires_at": (datetime.utcnow() + timedelta(hours=1)).isoformat()
+        }
+        
+        try:
+            tokencontainer.create_item(body=token_doc)
+            # Send reset password email with the token
+            await send_reset_password_email(email, reset_token)
+            return {"message": "Reset password email sent. Check your mail!"}
+        except Exception as e:
+            logger.error(f"Error creating reset token: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Error processing password reset request"
+            )
     else:
         raise HTTPException(status_code=404, detail="User not found")
 
 @app.get("/reset-password")
 async def reset_password_page(request: Request, token: str = Query(...)):
-    if token in reset_password_tokens:
-        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token})
-    else:
-        raise HTTPException(status_code=400, detail="Invalid or expired reset password token")
+    try:
+        # Query token from Cosmos DB
+        query = "SELECT * FROM c WHERE c.id = @token AND c.type = 'reset_token'"
+        parameters = [{"name": "@token", "value": token}]
+        
+        tokens = list(tokencontainer.query_items(
+            query=query,
+            parameters=parameters,
+            enable_cross_partition_query=True
+        ))
+        
+        if not tokens:
+            return templates.TemplateResponse("error.html", {
+                "request": request,
+                "message": "This password reset link is invalid. Please request a new password reset."
+            })
+            
+        token_doc = tokens[0]
+        
+        # Check if token has expired
+        expires_at = datetime.fromisoformat(token_doc['expires_at'])
+        if datetime.utcnow() > expires_at:
+            return templates.TemplateResponse("error.html", {
+                "request": request,
+                "message": "This password reset link has expired. Please request a new password reset."
+            })
+            
+        return templates.TemplateResponse("reset_password.html", {
+            "request": request,
+            "token": token
+        })
+    except Exception as e:
+        logger.error(f"Error verifying reset token: {str(e)}")
+        return templates.TemplateResponse("error.html", {
+            "request": request,
+            "message": "An error occurred. Please try again or request a new password reset."
+        })
     
 @app.post("/api/reset-password")
 async def reset_password(request: ResetPasswordRequest):
-    if request.token in reset_password_tokens:
-        email = reset_password_tokens[request.token]
+    try:
+        # Query token from Cosmos DB
+        query = "SELECT * FROM c WHERE c.id = @token AND c.type = 'reset_token'"
+        parameters = [{"name": "@token", "value": request.token}]
+        
+        tokens = list(tokencontainer.query_items(
+            query=query,
+            parameters=parameters,
+            enable_cross_partition_query=True
+        ))
+        
+        if not tokens:
+            raise HTTPException(status_code=400, detail="Invalid reset token")
+            
+        token_doc = tokens[0]
+        
+        # Check if token has expired
+        expires_at = datetime.fromisoformat(token_doc['expires_at'])
+        if datetime.utcnow() > expires_at:
+            raise HTTPException(status_code=400, detail="Reset token has expired")
+
+        email = token_doc['email']
         
         # Hash the new password
         hashed_password = pwd_context.hash(request.new_password)
         
         # Update the user's password in the database
-        update_user_password(email, hashed_password)  # Function to update user's password
+        update_user_password(email, hashed_password)
         
-        # Remove the reset token
-        del reset_password_tokens[request.token]
+        # Delete the used token
+        tokencontainer.delete_item(item=token_doc['id'], partition_key=token_doc['id'])
         
-        return {"message": "Password reset successful"}
-    else:
-        raise HTTPException(status_code=400, detail="Invalid or expired reset password token")
+        return {"message": "Password reset successful. Now you can login again1"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error resetting password: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while resetting the password"
+        )
 
 async def send_reset_password_email(email: str, reset_token: str):
     subject = "Reset Your Password for Predictum IT ChatApp"
@@ -383,6 +461,8 @@ async def send_reset_password_email(email: str, reset_token: str):
     
     {reset_url}
     
+    This link will expire in 1 hour.
+
     If you didn't request a password reset, please ignore this email.
     """
 
@@ -428,7 +508,29 @@ def get_user_by_email(email: str):
         return users[0]
     else:
         return None
-    
+
+async def cleanup_expired_tokens():
+    while True:
+        try:
+            current_time = datetime.utcnow().isoformat()
+            query = "SELECT * FROM c WHERE c.expires_at < @current_time"
+            parameters = [{"name": "@current_time", "value": current_time}]
+            
+            expired_tokens = list(tokencontainer.query_items(
+                query=query,
+                parameters=parameters,
+                enable_cross_partition_query=True
+            ))
+            
+            for token in expired_tokens:
+                tokencontainer.delete_item(item=token['id'], partition_key=token['id'])
+                
+            await asyncio.sleep(3600)  # Run every hour
+            
+        except Exception as e:
+            logger.error(f"Error cleaning up expired tokens: {str(e)}")
+            await asyncio.sleep(300)  # Wait 5 minutes before retrying if there's an error
+
 # Get current user
 @app.get("/api/users/me")
 async def read_users_me(current_user = Depends(get_current_user)):
@@ -468,24 +570,71 @@ async def authenticate_requests(request: Request, call_next):
 
 @app.get("/verify")
 async def verify_email_page(request: Request, token: str = Query(...)):
-    # Check if token is valid
-    if token not in verification_tokens:
-        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
-    
-    return templates.TemplateResponse("set_password.html", {
-        "request": request,
-        "token": token
-    })
+    try:
+        # Query token from Cosmos DB
+        query = "SELECT * FROM c WHERE c.id = @token AND c.type = 'verification_token'"
+        parameters = [{"name": "@token", "value": token}]
+        
+        tokens = list(tokencontainer.query_items(
+            query=query,
+            parameters=parameters,
+            enable_cross_partition_query=True
+        ))
+        
+        if not tokens:
+            # Return an error page instead of throwing an exception
+            return templates.TemplateResponse("error.html", {
+                "request": request,
+                "message": "This verification link is invalid. Please request a new verification email."
+            })
+            
+        token_doc = tokens[0]
+        
+        # Check if token has expired
+        expires_at = datetime.fromisoformat(token_doc['expires_at'])
+        if datetime.utcnow() > expires_at:
+            # Return an error page for expired token
+            return templates.TemplateResponse("error.html", {
+                "request": request,
+                "message": "This verification link has expired. Please request a new verification email."
+            })
+            
+        return templates.TemplateResponse("set_password.html", {
+            "request": request,
+            "token": token
+        })
+    except Exception as e:
+        logger.error(f"Error verifying token: {str(e)}")
+        return templates.TemplateResponse("error.html", {
+            "request": request,
+            "message": "An error occurred. Please try again or request a new verification email."
+        })
 
 @app.post("/api/set-password")
 async def set_password(request: SetPasswordRequest):
-    # Verify token
-    if request.token not in verification_tokens:
-        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
-    
-    email = verification_tokens[request.token]
-    
     try:
+        # Query token from Cosmos DB
+        query = "SELECT * FROM c WHERE c.id = @token AND c.type = 'verification_token'"
+        parameters = [{"name": "@token", "value": request.token}]
+        
+        tokens = list(tokencontainer.query_items(
+            query=query,
+            parameters=parameters,
+            enable_cross_partition_query=True
+        ))
+        
+        if not tokens:
+            raise HTTPException(status_code=400, detail="Invalid verification token")
+            
+        token_doc = tokens[0]
+        
+        # Check if token has expired
+        expires_at = datetime.fromisoformat(token_doc['expires_at'])
+        if datetime.utcnow() > expires_at:
+            raise HTTPException(status_code=400, detail="Verification token has expired")
+
+        email = token_doc['email']
+        
         # Hash the password
         hashed_password = pwd_context.hash(request.password)
         user_id = str(uuid.uuid4())
@@ -505,13 +654,15 @@ async def set_password(request: SetPasswordRequest):
         # Save to database
         usercontainer.create_item(body=user_doc)
         
-        # Remove verification token
-        del verification_tokens[request.token]
+        # Delete the used token from Cosmos DB
+        tokencontainer.delete_item(item=token_doc['id'], partition_key=token_doc['id'])
         
-        return {"message": "Password set successfully"}
+        return {"message": "Password set successfully. You are now able to login!"}
         
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error setting password for {email}: {str(e)}")
+        logger.error(f"Error setting password: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail="An error occurred while setting the password"
