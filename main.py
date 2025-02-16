@@ -71,6 +71,10 @@ class SettingsResponse(BaseModel):
     temperature: float
     max_tokens: int
 
+class SetPasswordRequest(BaseModel):
+    token: str
+    password: str
+
 load_dotenv()
 app = FastAPI()
 
@@ -168,25 +172,6 @@ async def get_settings():
         "max_tokens": int(os.getenv("MAX_TOKENS", 1000))
     }
     return JSONResponse(content=settings)
-
-@app.get("/verify-email")
-async def verify_email(token: str = Query(..., description="Verification token from the email link")):
-    # Check if the verification token is valid
-    if token not in verification_tokens:
-        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
-
-    email = verification_tokens[token]
-
-    # Perform the email verification process
-    # Add your logic here to mark the email as verified in the database
-
-    # For demonstration purposes, let's print the email address for verification
-    print(f"Email address {email} verified successfully")
-
-    # Remove the token from the verification tokens dictionary
-    del verification_tokens[token]
-
-    return {"message": "Email address verified successfully"}
 
 # Helper functions for authentication
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -492,10 +477,6 @@ async def verify_email_page(request: Request, token: str = Query(...)):
         "token": token
     })
 
-class SetPasswordRequest(BaseModel):
-    token: str
-    password: str
-
 @app.post("/api/set-password")
 async def set_password(request: SetPasswordRequest):
     # Verify token
@@ -536,9 +517,6 @@ async def set_password(request: SetPasswordRequest):
             detail="An error occurred while setting the password"
         )
     
-
-
-
 # Chat endpoint
 @app.post("/chat")
 async def chat(message: str = Form(...), conversation: str = Form(default="[]")):
