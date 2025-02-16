@@ -64,6 +64,13 @@ class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
 
+class SettingsResponse(BaseModel):
+    model: str
+    system_prompt_supported: str
+    system_prompt: str
+    temperature: float
+    max_tokens: int
+
 load_dotenv()
 app = FastAPI()
 
@@ -90,12 +97,11 @@ database = cosmos_client.get_database_client("chat_app")
 usercontainer = database.get_container_client("users")
 conversationcontainer = database.get_container_client("conversations")
 
-# Default settings
 DEFAULT_SETTINGS = {
-    "system_prompt": "You are a helpful assistant.",
-    "model": "gpt-3.5-turbo",
-    "temperature": 0.7,
-    "max_tokens": 4096
+    "system_prompt": os.getenv("SYSTEM_PROMPT"),
+    "model": os.getenv("MODEL"),
+    "temperature": float(os.getenv("TEMPERATURE")),
+    "max_tokens": int(os.getenv("MAX_TOKENS"))
 }
 
 # JWT Configuration
@@ -151,6 +157,17 @@ async def send_verification_email(email: str, verification_token: str):
     await fast_mail.send_message(message=message_obj)
 
 verification_tokens = {}  # Dictionary to store verification tokens
+
+@app.get("/settings")
+async def get_settings():
+    settings = {
+        "model": os.getenv("MODEL", "claude-3-5-sonnet-20241022"),
+        "system_prompt_supported": os.getenv("SYSTEM_PROMPT_SUPPORTED", "Yes"),
+        "system_prompt": os.getenv("SYSTEM_PROMPT", "You are a helpful assistant."),
+        "temperature": float(os.getenv("TEMPERATURE", 0.7)),
+        "max_tokens": int(os.getenv("MAX_TOKENS", 1000))
+    }
+    return JSONResponse(content=settings)
 
 @app.get("/verify-email")
 async def verify_email(token: str = Query(..., description="Verification token from the email link")):

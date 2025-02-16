@@ -4,7 +4,7 @@
 let conversationHistory = [];
 let currentConversationId = null;
 
-window.onload = function () {
+window.onload = async function () {
 
     const token = localStorage.getItem('token');
     const tokenExpiration = localStorage.getItem('token_expiration');
@@ -25,11 +25,12 @@ window.onload = function () {
         }
     }
 
-
-
-    const settings = localStorage.getItem('chatSettings');
-    if (!settings) {
-        localStorage.setItem('chatSettings', JSON.stringify(DEFAULT_SETTINGS));
+    // Fetch the default settings from the environment variables, and set them in local storage if not stored already
+    const defaultSettings = await fetchDefaultSettings();
+    console.log("defaultSettings: ", defaultSettings);
+    const storedSettings = localStorage.getItem('chatSettings');
+    if (!storedSettings) {
+        localStorage.setItem('chatSettings', JSON.stringify(defaultSettings));
     }
 
     document.getElementById('message-input').focus();
@@ -39,22 +40,53 @@ window.onload = function () {
     }
 };
 
+// Default settings object
+const DEFAULT_SETTINGS = {
+    model: 'Dummy',
+    system_prompt_supported: "X",
+    system_prompt: 'Bla.',
+    temperature: 0,
+    max_tokens: 1
+};
+
+const fetchDefaultSettings = async () => {
+    try {
+        const response = await fetch('/settings');
+        const data = await response.json();
+        //console.log(data);
+
+        // Update DEFAULT_SETTINGS with the fetched values
+        Object.assign(DEFAULT_SETTINGS, data);
+        //console.log(DEFAULT_SETTINGS);
+
+        // Add more properties as needed
+        return DEFAULT_SETTINGS;
+    } catch (error) {
+        console.error('Error fetching settings:', error);
+    }
+}
+
 function updateUIForAuthState() {
     const loadConversationsBtn = document.getElementById('load-conversations');
     const saveConversationBtn = document.getElementById('save-conversation');
     const loginBtn = document.getElementById('login');
     const logoutBtn = document.getElementById('logout');
+    const welcomeMessage = document.getElementById("logged-in-user");
+    const userEmail = localStorage.getItem('user_email');
+
 
     if (isUserLoggedIn()) {
         loadConversationsBtn.style.display = 'block';
         saveConversationBtn.style.display = 'block';
         loginBtn.style.display = 'none';
         logoutBtn.style.display = 'block';
+        welcomeMessage.innerHTML = "Welcome "  + userEmail;    
     } else {
         loadConversationsBtn.style.display = 'none';
         saveConversationBtn.style.display = 'none';
         loginBtn.style.display = 'block';
         logoutBtn.style.display = 'none';
+        welcomeMessage.innerHTML = "";    
     }
 }
 
@@ -1167,15 +1199,6 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
 //     const costInfo = `Input: $${costs.input}/1K tokens, Output: $${costs.output}/1K tokens`;
 //     document.getElementById('cost-info').textContent = costInfo;
 // });
-
-// Default settings object
-const DEFAULT_SETTINGS = {
-    model: 'gpt-3.5-turbo',
-    system_prompt_supported: "Yes",
-    system_prompt: 'You are a helpful assistant.',
-    temperature: 0.7,
-    max_tokens: 1000
-};
 
 // Function to restore default settings
 function restoreDefaultSettings() {

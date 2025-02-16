@@ -40,6 +40,15 @@ p {
     max-height: 30px;
 }
 
+.welcome-user {
+    margin-top: 45px;
+    position: absolute; 
+    right: 7px; 
+    top: 0px;
+    font-size: 6pt;
+    color: black;
+}
+
 .button-container {
     display: flex;
     justify-content: space-between;
@@ -855,4 +864,9 @@ button:hover {
 .name-text {
     display: inline-block;
     width: 100%;
+}
+
+/* Hidden input fields */
+.hidden-input {
+    display: none;
 }
