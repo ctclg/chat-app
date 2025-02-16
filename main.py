@@ -441,7 +441,7 @@ async def reset_password(request: ResetPasswordRequest):
         # Delete the used token
         tokencontainer.delete_item(item=token_doc['id'], partition_key=token_doc['id'])
         
-        return {"message": "Password reset successful. Now you can login again1"}
+        return {"message": "Password reset successful. Now you can login again!"}
         
     except HTTPException:
         raise
