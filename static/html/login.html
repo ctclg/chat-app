@@ -5,10 +5,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="icon" type="image/png" href="../images/logo-favicon.png">
     <title>Login</title>
     <style>
         .container {
-            max-width: 400px;
+            width: 270px;
             margin: 50px auto;
             padding: 20px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -30,10 +32,11 @@
             border: 1px solid #ddd;
             border-radius: 4px;
             box-sizing: border-box;
+            height: 30px;
         }
 
         button {
-            width: 100%;
+            width: 75px;
             padding: 10px;
             background-color: #007bff;
             color: white;
@@ -77,8 +80,12 @@
         <div class="register-link">
             <p>Don't have an account? <a href="/static/html/register.html">Register here</a></p>
         </div>
+        <div class="reset-password-link">
+            <p>Forgot you password? <a href="/static/html/request_new_password.html">Click here</a></p>
+        </div>
     </div>
     <script>
+        document.getElementById('email').focus();
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 

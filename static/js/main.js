@@ -25,6 +25,13 @@ window.onload = function () {
         }
     }
 
+
+
+    const settings = localStorage.getItem('chatSettings');
+    if (!settings) {
+        localStorage.setItem('chatSettings', JSON.stringify(DEFAULT_SETTINGS));
+    }
+
     document.getElementById('message-input').focus();
     document.addEventListener('DOMContentLoaded', updateUIForAuthState);
     if (conversationHistory.length === 0) {
@@ -37,7 +44,7 @@ function updateUIForAuthState() {
     const saveConversationBtn = document.getElementById('save-conversation');
     const loginBtn = document.getElementById('login');
     const logoutBtn = document.getElementById('logout');
-    
+
     if (isUserLoggedIn()) {
         loadConversationsBtn.style.display = 'block';
         saveConversationBtn.style.display = 'block';
@@ -100,8 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 addMessage(
                     msg.content,
                     msg.role === 'user' ? 'user-message' :
-                    msg.role === 'assistant' ? 'bot-message' :
-                    msg.role === 'system' ? 'system-message' : null,
+                        msg.role === 'assistant' ? 'bot-message' :
+                            msg.role === 'system' ? 'system-message' : null,
                     msg.timestamp,
                     msg.role === 'assistant' ? msg.model : null
                 );
@@ -145,7 +152,7 @@ async function saveConversation(name, folder) {
                 messages: conversationHistory
             };
             console.log('Full update payload:', JSON.stringify(updateData, null, 2));
-        
+
             const response = await fetch(`/api/conversations/${currentConversationId}`, {
                 method: 'PUT',
                 headers: {
@@ -168,7 +175,7 @@ async function saveConversation(name, folder) {
             const result = await response.json();
             console.log('Update successful:', result);
             console.log('Number of messages in response:', result.messages.length);
-        
+
         } else {
             console.log('Creating new conversation');
             const response = await fetch('/api/conversations', {
@@ -201,7 +208,7 @@ async function saveConversation(name, folder) {
         // Update localStorage
         localStorage.setItem('currentFolder', folder);
         localStorage.setItem('chatHistory', JSON.stringify(conversationHistory));
-        
+
         //alert('Conversation saved successfully!');
 
     } catch (error) {
@@ -427,6 +434,7 @@ document.getElementById('load-conversations').addEventListener('click', async ()
     } catch (error) {
         console.error('Failed to load conversations:', error);
         alert('Failed to load conversations');
+        logout();
     }
 });
 
@@ -498,10 +506,10 @@ async function showConversationSelector(conversations) {
             dialog.remove();
         }
     });
-    
+
     // Set focus on the dialog when it is created
     dialog.focus();
-    
+
     // Folder filter functionality
     const folderFilter = dialog.querySelector('#folder-filter');
     folderFilter.addEventListener('change', (e) => {
@@ -589,15 +597,10 @@ async function showConversationSelector(conversations) {
     });
 }
 
-// Define a function to be executed after a wait time
-function myFunction() {
-    console.log('Wait time is over!');
-}
-
 async function loadConversation(conversation) {
     try {
         console.log('Loading conversation with ID:', conversation.id); // Debug log
-        
+
         // Clear current chat
         document.getElementById('chat-messages').innerHTML = '';
         conversationHistory = [];
@@ -606,13 +609,13 @@ async function loadConversation(conversation) {
         localStorage.setItem('currentFolder', conversation.folder);
         currentConversationId = conversation.id;  // Set the ID
         console.log('Set currentConversationId to:', currentConversationId); // Debug log
-        
+
         // Load the selected conversation
         const tmpconversationHistory = await getConversationMessages(conversation.id);
         console.log('Loaded conversation:', tmpconversationHistory); // Debug log
 
         // Convert to the desired format
-        conversationHistory = tmpconversationHistory[0].messages.map(function(message) {
+        conversationHistory = tmpconversationHistory[0].messages.map(function (message) {
             return {
                 role: message.role,
                 content: message.content,
@@ -620,19 +623,19 @@ async function loadConversation(conversation) {
                 model: message.model
             };
         });
-        
+
         console.log("conversationHistory: " + JSON.stringify(conversationHistory));
-        
+
         // Set a wait time of 2 seconds (2000 milliseconds)
-        setTimeout(myFunction, 4000);
+        //setTimeout(myFunction, 4000);
 
         // Display all messages
         conversationHistory.forEach(msg => {
             addMessage(
                 msg.content,
-                msg.role === 'user' ? 'user-message' : 
-                msg.role === 'assistant' ? 'bot-message' :
-                msg.role === 'system' ? 'system-message' : null,
+                msg.role === 'user' ? 'user-message' :
+                    msg.role === 'assistant' ? 'bot-message' :
+                        msg.role === 'system' ? 'system-message' : null,
                 msg.timestamp,
                 msg.role === 'assistant' ? msg.model : null
             );
@@ -744,21 +747,28 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
     const messageInput = document.getElementById('message-input');
     const message = messageInput.value.trim();
 
+    // Read the value of systemPromptSupported from local storage
+    const chatSettings = JSON.parse(localStorage.getItem('chatSettings'));
+    const selectedModel = chatSettings.model;   
+    const systemPromptSupported = chatSettings.system_prompt_supported;   
+    console.log("selectedModel: " + selectedModel)
+    console.log("systemPromptSupported: " + systemPromptSupported)
+
+    if (systemPromptSupported == "Yes") {
+        systemPrompt = chatSettings.system_prompt; 
+    } else {
+        systemPrompt = "System message not supported for the selected model."
+    }
+    console.log("systemPrompt: " + systemPrompt)
+
     if (!message) return;
 
-    // Todo: Do not send system message if the model does not support it
-    // const selectedModel = document.getElementById('model-select').value;
     // Add system message to chat and conversation history if it is empty
     if (conversationHistory.length === 0) {
-        //Generate currentConversationId and save it to localStorage
-        //const uuid = generateUUID();
-        //currentConversationId = uuid;
-        //localStorage.setItem('currentConversationId', currentConversationId); // Save ID to localStorage
-
-        addMessage(document.getElementById('system-prompt').value, 'system-message', formatDate(new Date()));
+        addMessage(systemPrompt, 'system-message', formatDate(new Date()));
         conversationHistory.push({
             role: 'system',
-            content: document.getElementById('system-prompt').value,
+            content: systemPrompt,
             timestamp: formatDate(new Date())
         });
     }
@@ -794,9 +804,7 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
         if (response.ok) {
 
             // Add bot message to chat
-            const selectedModel = document.getElementById('model-select').value;
             addMessage(data.response, 'bot-message', formatDate(new Date()), selectedModel);
-            //addMessage(data.response, 'bot-message');
             // Add bot message to conversation history
             conversationHistory.push({
                 role: 'assistant',
@@ -951,10 +959,50 @@ document.getElementById('clear-chat').addEventListener('click', () => {
     }
 });
 
+// Get available models
+async function loadModels() {
+    const selectElement = document.getElementById('model-select');
+    selectElement.disabled = true; // Disable during loading
+
+    try {
+        const response = await fetch('/api/models');
+        if (!response.ok) {
+            throw new Error('Failed to fetch models');
+        }
+
+        const models = await response.json();
+        selectElement.innerHTML = ''; // Clear existing options
+
+        models.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model.value;
+            option.textContent = model.label;
+            option.dataset.systemPromptSupported = model.system_prompt_supported;
+            selectElement.appendChild(option);
+        });
+        //Set the current model
+        loadSettings()
+
+    } catch (error) {
+        console.error('Error loading models:', error);
+        // Add a disabled option to show the error
+        selectElement.innerHTML = '<option disabled>Error loading models</option>';
+    } finally {
+        selectElement.disabled = false;
+    }
+}
+
 // Settings handling
 function saveSettings() {
+
+    const selectedModel = document.getElementById('model-select').selectedOptions[0];
+    console.log(selectedModel)
+    const systemPromptSupported = selectedModel?.dataset.systemPromptSupported;
+    console.log(systemPromptSupported)
+
     const settings = {
         model: document.getElementById('model-select').value,
+        system_prompt_supported: systemPromptSupported,
         system_prompt: document.getElementById('system-prompt').value,
         temperature: document.getElementById('temperature').value,
         max_tokens: document.getElementById('max-tokens').value
@@ -971,6 +1019,30 @@ function loadSettings() {
             document.getElementById('system-prompt').value = parsedSettings.system_prompt || DEFAULT_SETTINGS.system_prompt;
             document.getElementById('temperature').value = parsedSettings.temperature || DEFAULT_SETTINGS.temperature;
             document.getElementById('max-tokens').value = parsedSettings.max_tokens || DEFAULT_SETTINGS.max_tokens;
+
+            // Get the system prompt textarea
+            const systemPromptArea = document.querySelector('#system-prompt');
+            // Get the overlay message
+            const overlay = document.querySelector('#system-prompt-overlay');
+            
+            // Read the value of systemPromptSupported from local storage
+            const chatSettings = JSON.parse(localStorage.getItem('chatSettings'));
+            const selectedModel = chatSettings.model;   
+            const systemPromptSupported = chatSettings.system_prompt_supported;   
+            console.log("selectedModel: " + selectedModel)
+            console.log("systemPromptSupported: " + systemPromptSupported)
+
+            if (systemPromptSupported == "Yes") {
+                // Enable the textarea
+                systemPromptArea.disabled = false;
+                // Hide the overlay
+                overlay.style.display = 'none';
+            } else {
+                // Disable the textarea
+                systemPromptArea.disabled = true;
+                // Show the overlay
+                overlay.style.display = 'flex';
+            }
         } catch (e) {
             console.error('Error loading settings:', e);
             restoreDefaultSettings();
@@ -979,6 +1051,37 @@ function loadSettings() {
         restoreDefaultSettings();
     }
 }
+
+// Function to handle model selection change
+function handleModelChange() {
+    // Get the selected option element
+    const selectedOption = document.querySelector('#model-select option:checked');
+    // Get the system prompt textarea
+    const systemPromptArea = document.querySelector('#system-prompt');
+    // Get the overlay message
+    const overlay = document.querySelector('#system-prompt-overlay');
+    
+    // Check if the selected model supports system prompts
+    if (selectedOption.dataset.systemPromptSupported === 'Yes') {
+        // Enable the textarea
+        systemPromptArea.disabled = false;
+        // Hide the overlay
+        overlay.style.display = 'none';
+    } else {
+        // Disable the textarea
+        systemPromptArea.disabled = true;
+        // Show the overlay
+        overlay.style.display = 'flex';
+    }
+}
+
+// Add event listener to the select element
+document.querySelector('#model-select').addEventListener('change', handleModelChange);
+
+// Call the function once when the settings modal is opened to set initial state
+//function onSettingsModalOpen() {
+//    handleModelChange();
+//}
 
 // Register button click event
 //document.getElementById('register-button').addEventListener('click', function () {
@@ -1047,27 +1150,28 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
     }
 });
 
-function getModelCost(model) {
-    const costs = {
-        'gpt-3.5-turbo': { input: 0.0015, output: 0.002 },
-        'gpt-4': { input: 0.03, output: 0.06 },
-        'gpt-4-turbo-preview': { input: 0.01, output: 0.03 },
-        'gpt-3.5-turbo-16k': { input: 0.003, output: 0.004 }
-    };
-    return costs[model] || costs['gpt-3.5-turbo'];
-}
+// function getModelCost(model) {
+//     const costs = {
+//         'gpt-3.5-turbo': { input: 0.0015, output: 0.002 },
+//         'gpt-4': { input: 0.03, output: 0.06 },
+//         'gpt-4-turbo-preview': { input: 0.01, output: 0.03 },
+//         'gpt-3.5-turbo-16k': { input: 0.003, output: 0.004 }
+//     };
+//     return costs[model] || costs['gpt-3.5-turbo'];
+// }
 
 // Add this to your model select change event
-document.getElementById('model-select').addEventListener('change', function () {
-    const model = this.value;
-    const costs = getModelCost(model);
-    const costInfo = `Input: $${costs.input}/1K tokens, Output: $${costs.output}/1K tokens`;
-    document.getElementById('cost-info').textContent = costInfo;
-});
+// document.getElementById('model-select').addEventListener('change', function () {
+//     const model = this.value;
+//     const costs = getModelCost(model);
+//     const costInfo = `Input: $${costs.input}/1K tokens, Output: $${costs.output}/1K tokens`;
+//     document.getElementById('cost-info').textContent = costInfo;
+// });
 
 // Default settings object
 const DEFAULT_SETTINGS = {
     model: 'gpt-3.5-turbo',
+    system_prompt_supported: "Yes",
     system_prompt: 'You are a helpful assistant.',
     temperature: 0.7,
     max_tokens: 1000
@@ -1098,7 +1202,8 @@ document.getElementById('restore-defaults').addEventListener('click', async () =
 
             if (response.ok) {
                 // Clear localStorage settings
-                localStorage.removeItem('chatSettings');
+                //localStorage.removeItem('chatSettings');
+                localStorage.setItem('chatSettings', JSON.stringify(DEFAULT_SETTINGS));
                 modal.style.display = "none";
                 //alert('Settings restored to defaults successfully!');
             } else {
@@ -1178,7 +1283,9 @@ var span = document.getElementsByClassName("close")[0];
 // When the user clicks the button, open the modal 
 btn.onclick = function () {
     modal.style.display = "block";
-    loadSettings(); // Update form fields with saved settings
+    loadModels();
+    //onSettingsModalOpen();
+    //loadSettings(); // Done in loadModels
 }
 // When the user clicks on <span> (x), close the modal
 span.onclick = function () {
@@ -1253,7 +1360,7 @@ function logout() {
 }
 
 function generateUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
         const r = Math.random() * 16 | 0; // Generate random number
         const v = c === 'x' ? r : (r & 0x3 | 0x8); // Adjust according to UUID version 4
         return v.toString(16); // Convert to hexadecimal
