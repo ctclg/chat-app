@@ -68,7 +68,7 @@
                         <small id="cost-info" class="text-muted"></small>
                     </div>
                     <div class="form-group">
-                        <label for="system-prompt">System Prompt (for new conversations):</label>
+                        <label for="system-prompt">System Message (for new conversations):</label>
                         <div class="system-prompt-container" style="position: relative;">
                             <textarea id="system-prompt" class="system-prompt"
                                 rows="3">You are a helpful assistant.</textarea>
@@ -79,12 +79,13 @@
                     </div>
                     <div style="display: flex;">
                         <div class="form-group" style="width: 120px;">
-                            <label for="temperature">Temperature:</label>
-                            <input type="number" id="temperature" min="0" max="2" step="0.1" value="0.7">
+                            <!--<label for="temperature">Temperature:</label>-->
+                            <input type="number" id="temperature" min="0" max="2" step="0.1" value="0.7"
+                                class="hidden-input">
                         </div>
                         <div class="form-group">
-                            <label for="max-tokens">Max Tokens:</label>
-                            <input type="number" id="max-tokens" min="1" max="10000" value="10000">
+                            <!--<label for="max-tokens">Max Tokens:</label>-->
+                            <input type="number" id="max-tokens" min="1" max="10000" value="10000" class="hidden-input">
                         </div>
                     </div>
                     <div class="button-group">
@@ -111,6 +112,9 @@
             </div>
         </div>
         <div id="top-section" class="top-section">
+            <div class="welcome-user">
+                <p id="logged-in-user"></p>
+            </div>
             <div class="button-container">
                 <button id="clear-chat">New</button>
                 <button id="load-conversations">Open</button>
