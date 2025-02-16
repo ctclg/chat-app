@@ -1,44 +1,34 @@
 #main.py
 
-from fastapi import FastAPI, Request, Form, HTTPException, Depends, status
+import json, logging, openai, os, secrets, uuid, anthropic
+from azure.cosmos import CosmosClient, PartitionKey
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request, Form, HTTPException, Depends, status, APIRouter, BackgroundTasks, APIRouter, Query
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, RedirectResponse
-import openai
-import os
-from dotenv import load_dotenv
-import logging
+from fastapi.responses import JSONResponse, RedirectResponse, FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from openai import OpenAI
-from pydantic import BaseModel, EmailStr
-import json
-from typing import List, Optional
-from azure.cosmos import CosmosClient, PartitionKey
-from passlib.context import CryptContext
-import uuid
-from datetime import datetime, timedelta
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from jose import JWTError, jwt
+from logging.handlers import RotatingFileHandler
+from openai import OpenAI
+from passlib.context import CryptContext
+from pydantic import BaseModel, EmailStr
+from typing import List, Optional, Dict
 
-class ChatSettings(BaseModel):
-    system_prompt: str
-    model: str
-    temperature: float
-    max_tokens: int
+# Create logs directory if it doesn't exist
+if not os.path.exists('logs'):
+    os.mkdir('logs')
 
-class UserRegistration(BaseModel):
-    email: EmailStr
-    password: str
+# Configure logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]',
+                    handlers=[RotatingFileHandler('logs/myapp.log', maxBytes=10240, backupCount=10)])
 
-# Token and user models
-class Token(BaseModel):
-    access_token: str
-    token_type: str
+logger = logging.getLogger(__name__)
 
-class TokenData(BaseModel):
-    email: Optional[str] = None
-
-# Conversation models
 class Message(BaseModel):
     role: str
     content: str
@@ -49,13 +39,30 @@ class Conversation(BaseModel):
     name: str
     folder: str
     messages: List[Message]
-    
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+
+class ChatSettings(BaseModel):
+    system_prompt: str
+    model: str
+    temperature: float
+    max_tokens: int
+
+class UserRegistration(BaseModel):
+    email: EmailStr
+
+class EmailVerificationToken(BaseModel):
+    token: str
+    email: EmailStr
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
 
 load_dotenv()
 app = FastAPI()
@@ -70,7 +77,9 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"),)
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -86,7 +95,7 @@ DEFAULT_SETTINGS = {
     "system_prompt": "You are a helpful assistant.",
     "model": "gpt-3.5-turbo",
     "temperature": 0.7,
-    "max_tokens": 1000
+    "max_tokens": 4096
 }
 
 # JWT Configuration
@@ -101,6 +110,66 @@ if not ACCESS_TOKEN_EXPIRE_MINUTES:
     raise ValueError("No ACCESS_TOKEN_EXPIRE_MINUTES set in environment variables")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
+
+# Configuration for sending emails
+conf = ConnectionConfig(
+    MAIL_USERNAME = os.getenv("MAIL_USERNAME"),
+    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD"),
+    MAIL_FROM = os.getenv("MAIL_FROM"),
+    MAIL_FROM_NAME = os.getenv("MAIL_FROM_NAME"),
+    MAIL_PORT = int(os.getenv("MAIL_PORT")),
+    MAIL_SERVER = os.getenv("MAIL_SERVER"),
+    MAIL_STARTTLS = os.getenv("MAIL_STARTTLS"),
+    MAIL_SSL_TLS = os.getenv("MAIL_SSL_TLS"),
+    USE_CREDENTIALS = os.getenv("USE_CREDENTIALS"),
+    VALIDATE_CERTS=os.getenv("VALIDATE_CERTS"),
+    TEMPLATE_FOLDER = os.getenv("TEMPLATE_FOLDER") #Path(__file__).parent / 'templates'
+)
+
+fast_mail = FastMail(conf)
+
+async def send_verification_email(email: str, verification_token: str):
+    subject = "Email Verification for Predictum IT ChatApp"
+    # Use your actual frontend URL
+    verification_url = f"{os.getenv('FRONTEND_URL')}/verify?token={verification_token}"
+    
+    message = f"""
+    Please verify your email address by clicking the link below:
+    
+    {verification_url}
+    
+    If you didn't request this verification, please ignore this email.
+    """
+    
+    message_obj = MessageSchema(
+        subject=subject,
+        recipients=[email],
+        body=message,
+        subtype="plain"
+    )
+
+    await fast_mail.send_message(message=message_obj)
+
+verification_tokens = {}  # Dictionary to store verification tokens
+
+@app.get("/verify-email")
+async def verify_email(token: str = Query(..., description="Verification token from the email link")):
+    # Check if the verification token is valid
+    if token not in verification_tokens:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+
+    email = verification_tokens[token]
+
+    # Perform the email verification process
+    # Add your logic here to mark the email as verified in the database
+
+    # For demonstration purposes, let's print the email address for verification
+    print(f"Email address {email} verified successfully")
+
+    # Remove the token from the verification tokens dictionary
+    del verification_tokens[token]
+
+    return {"message": "Email address verified successfully"}
 
 # Helper functions for authentication
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -162,50 +231,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-# Chat endpoint
-@app.post("/chat")
-async def chat(message: str = Form(...), conversation: str = Form(default="[]")):
-    try:
-        logger.info(f"Received message: {message}")
-        
-        # Parse conversation JSON string to list
-        try:
-            conversation_list = json.loads(conversation)
-        except json.JSONDecodeError:
-            conversation_list = []
-        
-        # Prepare messages for API call
-        messages = []
-        #messages = [{"role": "system", "content": DEFAULT_SETTINGS["system_prompt"]}]
-        messages.extend(conversation_list)
-        messages.append({"role": "user", "content": message})
-        #print(messages)
-        response = client.chat.completions.create(
-            model=DEFAULT_SETTINGS["model"],  # Now using the selected model
-            messages=messages,
-            temperature=DEFAULT_SETTINGS["temperature"],
-            max_tokens=DEFAULT_SETTINGS["max_tokens"]
-        )
-
-        return JSONResponse(content={
-            "response": response.choices[0].message.content
-        })
-    except Exception as e:
-        logger.error(f"Error calling OpenAI API: {str(e)}")
-        logger.exception("Full exception details:")
-        return JSONResponse(content={"error": str(e)}, status_code=500)
-
-# Update chat settings
-@app.post("/update-settings")
-async def update_settings(settings: ChatSettings):
-    global DEFAULT_SETTINGS
-    DEFAULT_SETTINGS = settings.dict()
-    return JSONResponse(content={"message": "Settings updated successfully"})
-
 # Register user
+# Define a global dictionary to store verification tokens
+verification_tokens: Dict[str, str] = {}
+
 @app.post("/api/register")
 async def register(user: UserRegistration):
     logger.info(f"Registration attempt for email: {user.email}")
+    
     try:
         # Check if user already exists
         query = "SELECT * FROM c WHERE c.email = @email"
@@ -219,28 +252,16 @@ async def register(user: UserRegistration):
         if existing_users:
             raise HTTPException(status_code=400, detail="Email already registered")
 
-        # Validate password (add your password requirements)
-        if len(user.password) < 8:
-            raise HTTPException(
-                status_code=400, 
-                detail="Password must be at least 8 characters long"
-            )
+        # Generate a unique verification token
+        verification_token = secrets.token_urlsafe(16)  # Generate a random token
+        verification_tokens[verification_token] = user.email
 
-        # Create new user document
-        user_id = str(uuid.uuid4())
-        user_doc = {
-            'id': user_id,
-            'partitionKey': f'USER#{user_id}',
-            'email': user.email,
-            'password_hash': pwd_context.hash(user.password),
-            'created_at': datetime.utcnow().isoformat(),
-            'type': 'user',
-            'is_active': True
-        }
+        logger.info(f"Prepare sending Email verification for email: {user.email}")
+        # Send email with verification link
+        await send_verification_email(user.email, verification_token)
 
-        usercontainer.create_item(body=user_doc)
-        logger.info(f"Successfully registered user: {user.email}")
-        return {"message": "Registration successful", "user_id": user_id}
+        logger.info(f"Email verification sent for email: {user.email}")
+        return {"message": "Email verification sent"}
 
     except HTTPException:
         raise
@@ -251,21 +272,7 @@ async def register(user: UserRegistration):
             status_code=500,
             detail="An error occurred during registration. Please try again."
         )
-
-# Test database connection
-@app.get("/api/test-db")
-async def test_db():
-    try:
-        # Try to query the database
-        query = "SELECT VALUE COUNT(1) FROM c"
-        result = list(usercontainer.query_items(
-            query=query,
-            enable_cross_partition_query=True
-        ))
-        return {"message": "Database connection successful", "count": result[0]}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
-
+    
 # Login endpoint
 @app.post("/api/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -324,6 +331,102 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         logger.info("="*50)
         raise
 
+reset_password_tokens = {}  # Dictionary to store reset password tokens
+
+@app.post("/api/request-reset-password")
+async def request_reset_password(email: str):
+    logger.info("Hogachaka")
+    user = get_user_by_email(email)  # Function to retrieve user details from the database
+    logger.info(user)
+    if user:
+        reset_token = secrets.token_urlsafe(16)  # Generate a random token
+        reset_password_tokens[reset_token] = email
+        # Send reset password email with the token
+        await send_reset_password_email(email, reset_token)
+        return {"message": "Reset password email sent. Check your mail!"}
+    else:
+        raise HTTPException(status_code=404, detail="User not found")
+
+@app.get("/reset-password")
+async def reset_password_page(request: Request, token: str = Query(...)):
+    if token in reset_password_tokens:
+        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token})
+    else:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset password token")
+    
+@app.post("/api/reset-password")
+async def reset_password(request: ResetPasswordRequest):
+    if request.token in reset_password_tokens:
+        email = reset_password_tokens[request.token]
+        
+        # Hash the new password
+        hashed_password = pwd_context.hash(request.new_password)
+        
+        # Update the user's password in the database
+        update_user_password(email, hashed_password)  # Function to update user's password
+        
+        # Remove the reset token
+        del reset_password_tokens[request.token]
+        
+        return {"message": "Password reset successful"}
+    else:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset password token")
+
+async def send_reset_password_email(email: str, reset_token: str):
+    subject = "Reset Your Password for Predictum IT ChatApp"
+    reset_url = f"{os.getenv('FRONTEND_URL')}/reset-password?token={reset_token}"  # Update with your actual reset password URL
+    
+    message = f"""
+    Please click the following link to reset your password:
+    
+    {reset_url}
+    
+    If you didn't request a password reset, please ignore this email.
+    """
+
+    message_obj = MessageSchema(
+        subject=subject,
+        recipients=[email],
+        body=message,
+        subtype="plain"
+    )
+
+    await fast_mail.send_message(message=message_obj)
+
+def update_user_password(email: str, new_password: str):
+    query = "SELECT * FROM c WHERE c.email = @email"
+    parameters = [{"name": "@email", "value": email}]
+    
+    users = list(usercontainer.query_items(
+        query=query,
+        parameters=parameters,
+        enable_cross_partition_query=True
+    ))
+    
+    if users:
+        user = users[0]
+        user["password_hash"] = new_password
+        
+        # Update the user document in the database
+        usercontainer.replace_item(item=user, body=user)
+    else:
+        raise Exception("User not found")
+
+def get_user_by_email(email: str):
+    query = "SELECT * FROM c WHERE c.email = @email"
+    parameters = [{"name": "@email", "value": email}]
+    
+    users = list(usercontainer.query_items(
+        query=query,
+        parameters=parameters,
+        enable_cross_partition_query=True
+    ))
+    
+    if users:
+        return users[0]
+    else:
+        return None
+    
 # Get current user
 @app.get("/api/users/me")
 async def read_users_me(current_user = Depends(get_current_user)):
@@ -360,6 +463,177 @@ async def authenticate_requests(request: Request, call_next):
             return RedirectResponse(url="/static/login.html")
 
     return await call_next(request)
+
+@app.get("/verify")
+async def verify_email_page(request: Request, token: str = Query(...)):
+    # Check if token is valid
+    if token not in verification_tokens:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+    
+    return templates.TemplateResponse("set_password.html", {
+        "request": request,
+        "token": token
+    })
+
+class SetPasswordRequest(BaseModel):
+    token: str
+    password: str
+
+@app.post("/api/set-password")
+async def set_password(request: SetPasswordRequest):
+    # Verify token
+    if request.token not in verification_tokens:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+    
+    email = verification_tokens[request.token]
+    
+    try:
+        # Hash the password
+        hashed_password = pwd_context.hash(request.password)
+        user_id = str(uuid.uuid4())
+
+        # Create user document
+        user_doc = {
+            "id": user_id,
+            'partitionKey': f'USER#{user_id}',
+            "type": "user",
+            "email": email,
+            "password_hash": hashed_password,
+            'is_active': True,
+            "verified": True,
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        # Save to database
+        usercontainer.create_item(body=user_doc)
+        
+        # Remove verification token
+        del verification_tokens[request.token]
+        
+        return {"message": "Password set successfully"}
+        
+    except Exception as e:
+        logger.error(f"Error setting password for {email}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while setting the password"
+        )
+    
+
+
+
+# Chat endpoint
+@app.post("/chat")
+async def chat(message: str = Form(...), conversation: str = Form(default="[]")):
+    try:
+        logger.info(f"Received message: {message}")
+        
+        # Parse conversation JSON string to list
+        try:
+            conversation_list = json.loads(conversation)
+        except json.JSONDecodeError:
+            conversation_list = []
+        
+        # Prepare messages for API call
+        messages = []
+        messages.extend(conversation_list)
+        messages.append({"role": "user", "content": message})
+        logger.info(f"conversation_list: {conversation_list}")
+        logger.info(f"messages: {messages}")
+
+        # This is optional, but I leave it here
+        # Loop through the data and modify the 'content' field
+        for message in messages:
+            # Convert 'content' to a list containing a dictionary with 'type' and 'text'
+            message['content'] = [{"type": "text", "text": message['content']}]
+
+        for message in messages:
+            if 'timestamp' in message:
+                del message['timestamp']
+            if 'model' in message:
+                del message['model']
+
+        selectedmodel = DEFAULT_SETTINGS["model"]
+
+        # o1-mini only support the value 1 in the temperature parameter, and max_token is max_completion_tokens
+        if "o1-mini" in selectedmodel.lower():
+            messages.pop(0) #Remove the first item in the list, as o1 does not accept the system role
+            messages.pop() #Remove the last item in the list, because it is duplicate for some reason
+            logger.info(f"o1-mini messages: {messages}")
+            response = openai_client.chat.completions.create(
+                model=DEFAULT_SETTINGS["model"], 
+                messages=messages,
+                temperature=1,
+                max_completion_tokens=DEFAULT_SETTINGS["max_tokens"]
+            )
+            logger.info(f"o1-mini response: {response}")
+            return JSONResponse(content={
+                "response": response.choices[0].message.content
+                })
+
+        # o1-preview does not support the temperature parameter, and max_token is max_completion_tokens
+        if "o1-preview" in selectedmodel.lower():
+            messages.pop(0) #Remove the first item in the list, as o1 does not accept the system role
+            messages.pop() #Remove the last item in the list, because it is duplicate for some reason
+            logger.info(f"o1-preview messages: {messages}")
+            response = openai_client.chat.completions.create(
+                model=DEFAULT_SETTINGS["model"], 
+                messages=messages,
+                max_completion_tokens=DEFAULT_SETTINGS["max_tokens"]
+            )
+            logger.info(f"o1-preview response: {response}")
+            return JSONResponse(content={
+                "response": response.choices[0].message.content
+                })
+
+        if "gpt" in selectedmodel.lower():
+            messages.pop() #Remove the last item in the list, because it is duplicate for some reason
+            logger.info(f"gpt messages: {messages}")
+            response = openai_client.chat.completions.create(
+                model=DEFAULT_SETTINGS["model"], 
+                messages=messages,
+                temperature=DEFAULT_SETTINGS["temperature"],
+                max_tokens=DEFAULT_SETTINGS["max_tokens"]
+            )
+            logger.info(f"gpt response: {response}")
+            return JSONResponse(content={
+                "response": response.choices[0].message.content
+                })
+
+        if "claude" in selectedmodel.lower():
+            messages.pop(0) #Remove the first item in the list, as claude does not accept the system role
+            messages.pop() #Remove the last item in the list, because it is duplicate for some reason
+            logger.info(f"claude messages: {messages}")
+            response = anthropic_client.messages.create(
+                model=DEFAULT_SETTINGS["model"], 
+                messages=messages, 
+                system=DEFAULT_SETTINGS["system_prompt"],
+                temperature=DEFAULT_SETTINGS["temperature"],
+                max_tokens=DEFAULT_SETTINGS["max_tokens"]
+            )
+            logger.info(f"claud response: {response}")
+            return JSONResponse(content={
+                "response": response.content[0].text
+                })
+
+    except Exception as e:
+        logger.error(f"Error calling LLM API: {str(e)}")
+        logger.exception("Full exception details:")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+# Update chat settings
+@app.post("/update-settings")
+async def update_settings(settings: ChatSettings):
+    global DEFAULT_SETTINGS
+    DEFAULT_SETTINGS = settings.dict()
+    return JSONResponse(content={"message": "Settings updated successfully"})
+
+# Get available models
+@app.get("/api/models")
+async def get_models():
+    models_json = os.getenv("AVAILABLE_MODELS", "[]")
+    models = json.loads(models_json)
+    return models
 
 # Save conversation
 @app.post("/api/conversations")
@@ -682,6 +956,20 @@ async def debug_routes():
             detail=f"Error listing routes: {str(e)}"
         )
 
+# Test database connection
+@app.get("/api/test-db")
+async def test_db():
+    try:
+        # Try to query the database
+        query = "SELECT VALUE COUNT(1) FROM c"
+        result = list(usercontainer.query_items(
+            query=query,
+            enable_cross_partition_query=True
+        ))
+        return {"message": "Database connection successful", "count": result[0]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
+
 # Debug test endpoint
 @app.get("/api/debug/test")
 async def debug_test():
@@ -689,6 +977,17 @@ async def debug_test():
     logger.info("Debug test endpoint hit")
     logger.info("="*50)
     return {"status": "ok", "message": "Debug endpoint working"}
+
+# # Generate verification token
+# def generate_verification_token():
+#     return secrets.token_urlsafe(16)
+
+# # Set up logging
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+# )
+# logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     import uvicorn

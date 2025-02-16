@@ -9,3 +9,4 @@ fastapi-mail
 azure-cosmos
 python-jose[cryptography]
 passlib[bcrypt]
+anthropic
