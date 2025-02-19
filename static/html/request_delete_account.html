@@ -1,0 +1,120 @@
+<!-- request_delete_account.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="icon" type="image/png" href="../images/logo-favicon.png">
+    <title>Delete account</title>
+    <style>
+        .container {
+            width: 300px;
+            margin: 50px auto;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            height: 30px;
+        }
+
+        button {
+            width: 130px;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>Request account deletion</h2>
+        <p style="font-size: large;">Enter your email address below to request deletion of your account.</p><br>
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <button type="submit" id="submitBtn">Request deletion</button>
+            <div id="errorMessage" class="error-message"></div>
+        </form>
+    </div>
+    <script>
+        document.getElementById('email').focus();
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            const email = document.getElementById('email').value;
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Clear previous error messages
+            errorMessage.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/request-delete-account', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Request failed');
+                }
+
+                // Registration successful
+                alert('Deletion of your account requested! Please check your mail.');
+                window.location.href = '/'; 
+            } catch (error) {
+                if (error.message === "Email for the account not found") {
+                    errorMessage.textContent = error.message;
+                    errorMessage.style.display = 'block';
+                } else {
+                    errorMessage.textContent = error.message;
+                    alert("Error sending mail. Make sure to enter a valid email address.");
+                    // Refresh the page after displaying this error message
+                    window.location.reload();
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

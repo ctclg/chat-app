@@ -64,6 +64,9 @@ class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
 
+class DeleteAccountRequest(BaseModel):
+    token: str
+
 class SettingsResponse(BaseModel):
     model: str
     system_prompt_supported: str
@@ -75,7 +78,7 @@ class SetPasswordRequest(BaseModel):
     token: str
     password: str
 
-load_dotenv()
+load_dotenv(override=True)
 app = FastAPI()
 
 app.add_middleware(
@@ -91,6 +94,7 @@ templates = Jinja2Templates(directory="templates")
 
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"),)
+deepseek_client = OpenAI(api_key=os.getenv("DEEPSEEK_API_KEY"), base_url="https://api.deepseek.com")
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -235,49 +239,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-# Register user
-@app.post("/api/register")
-async def register(user: UserRegistration):
-    logger.info(f"Registration attempt for email: {user.email}")
-    
-    try:
-        # Check if user already exists
-        query = "SELECT * FROM c WHERE c.email = @email"
-        parameters = [{"name": "@email", "value": user.email}]
-        existing_users = list(usercontainer.query_items(
-            query=query,
-            parameters=parameters,
-            enable_cross_partition_query=True
-        ))
-
-        if existing_users:
-            raise HTTPException(status_code=400, detail="Email already registered")
-
-        # Generate a unique verification token
-        verification_token = secrets.token_urlsafe(16)
-        
-        # Store token in Cosmos DB with expiration time
-        token_doc = {
-            "id": verification_token,
-            "email": user.email,
-            "type": "verification_token",
-            "created_at": datetime.utcnow().isoformat(),
-            "expires_at": (datetime.utcnow() + timedelta(hours=1)).isoformat()
-        }
-        tokencontainer.create_item(body=token_doc)
-
-        # Send email with verification link
-        await send_verification_email(user.email, verification_token)
-
-        return {"message": "Email verification sent"}
-
-    except Exception as e:
-        logger.error(f"Registration error for {user.email}: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail="An error occurred during registration. Please try again."
-        )
-    
 # Login endpoint
 @app.post("/api/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -336,6 +297,92 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         logger.info("="*50)
         raise
 
+# Register user
+@app.post("/api/register")
+async def register(user: UserRegistration):
+    logger.info(f"Registration attempt for email: {user.email}")
+    
+    try:
+        # Check if user already exists
+        query = "SELECT * FROM c WHERE c.email = @email"
+        parameters = [{"name": "@email", "value": user.email}]
+        existing_users = list(usercontainer.query_items(
+            query=query,
+            parameters=parameters,
+            enable_cross_partition_query=True
+        ))
+
+        if existing_users:
+            raise HTTPException(status_code=400, detail="Email already registered")
+
+        # Generate a unique verification token
+        verification_token = secrets.token_urlsafe(16)
+        
+        # Store token in Cosmos DB with expiration time
+        token_doc = {
+            "id": verification_token,
+            "email": user.email,
+            "type": "verification_token",
+            "created_at": datetime.utcnow().isoformat(),
+            "expires_at": (datetime.utcnow() + timedelta(hours=1)).isoformat()
+        }
+        tokencontainer.create_item(body=token_doc)
+
+        # Send email with verification link
+        await send_verification_email(user.email, verification_token)
+
+        return {"message": "Email verification sent"}
+
+    except Exception as e:
+        logger.error(f"Registration error for {user.email}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred during registration. Please try again."
+        )
+
+# Delete user
+@app.post("/api/request-delete-account")
+async def request_delete_account(user: UserRegistration):
+    logger.info(f"Deletion attempt for email: {user.email}")
+    
+    try:
+        # Check if user exists
+        query = "SELECT * FROM c WHERE c.email = @email"
+        parameters = [{"name": "@email", "value": user.email}]
+        existing_users = list(usercontainer.query_items(
+            query=query,
+            parameters=parameters,
+            enable_cross_partition_query=True
+        ))
+
+        if not existing_users:
+            raise HTTPException(status_code=400, detail="Email for the account not found")
+
+        # Generate a unique verification token
+        deletion_token = secrets.token_urlsafe(16)
+        
+        # Store token in Cosmos DB with expiration time
+        token_doc = {
+            "id": deletion_token,
+            "email": user.email,
+            "type": "deletion_token",
+            "created_at": datetime.utcnow().isoformat(),
+            "expires_at": (datetime.utcnow() + timedelta(hours=1)).isoformat()
+        }
+        tokencontainer.create_item(body=token_doc)
+
+        # Send email with verification link
+        await send_delete_account_email(user.email, deletion_token)
+
+        return {"message": "Email verification sent"}
+
+    except Exception as e:
+        logger.error(f"Deletion error for {user.email}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred during deletion. Please try again."
+        )
+        
 @app.post("/api/request-reset-password")
 async def request_reset_password(email: str):
     logger.info(f"Password reset requested for email: {email}")
@@ -406,7 +453,47 @@ async def reset_password_page(request: Request, token: str = Query(...)):
             "request": request,
             "message": "An error occurred. Please try again or request a new password reset."
         })
-    
+
+@app.get("/delete-account")
+async def delete_account_page(request: Request, token: str = Query(...)):
+    try:
+        # Query token from Cosmos DB
+        query = "SELECT * FROM c WHERE c.id = @token AND c.type = 'deletion_token'"
+        parameters = [{"name": "@token", "value": token}]
+        logger.info(f"Querying token: {token}")
+        tokens = list(tokencontainer.query_items(
+            query=query,
+            parameters=parameters,
+            enable_cross_partition_query=True
+        ))
+        
+        if not tokens:
+            return templates.TemplateResponse("error.html", {
+                "request": request,
+                "message": "This link is invalid. Please request the deletion of your account again."
+            })
+            
+        token_doc = tokens[0]
+        
+        # Check if token has expired
+        expires_at = datetime.fromisoformat(token_doc['expires_at'])
+        if datetime.utcnow() > expires_at:
+            return templates.TemplateResponse("error.html", {
+                "request": request,
+                "message": "This link has expired. Please request the deletion of your account reset."
+            })
+            
+        return templates.TemplateResponse("delete_account.html", {
+            "request": request,
+            "token": token
+        })
+    except Exception as e:
+        logger.error(f"Error verifying token: {str(e)}")
+        return templates.TemplateResponse("error.html", {
+            "request": request,
+            "message": "An error occurred. Please try again or make the request again."
+        })
+
 @app.post("/api/reset-password")
 async def reset_password(request: ResetPasswordRequest):
     try:
@@ -452,6 +539,49 @@ async def reset_password(request: ResetPasswordRequest):
             detail="An error occurred while resetting the password"
         )
 
+@app.post("/api/delete-account")
+async def delete_account(request: DeleteAccountRequest):
+    logger.info(f"Delete account request for token: {request.token}")
+    try:
+        # Query token from Cosmos DB
+        query = "SELECT * FROM c WHERE c.id = @token AND c.type = 'deletion_token'"
+        parameters = [{"name": "@token", "value": request.token}]
+        
+        tokens = list(tokencontainer.query_items(
+            query=query,
+            parameters=parameters,
+            enable_cross_partition_query=True
+        ))
+        
+        if not tokens:
+            raise HTTPException(status_code=400, detail="Invalid reset token")
+            
+        token_doc = tokens[0]
+        
+        # Check if token has expired
+        expires_at = datetime.fromisoformat(token_doc['expires_at'])
+        if datetime.utcnow() > expires_at:
+            raise HTTPException(status_code=400, detail="Reset token has expired")
+
+        email = token_doc['email']
+        
+        # Delete the user from the database
+        delete_user(email)
+        
+        # Delete the used token
+        tokencontainer.delete_item(item=token_doc['id'], partition_key=token_doc['id'])
+        
+        return {"message": "Your account has been deleted successfully."}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting account: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while deleting the account"
+        )
+
 async def send_reset_password_email(email: str, reset_token: str):
     subject = "Reset Your Password for Predictum IT ChatApp"
     reset_url = f"{os.getenv('FRONTEND_URL')}/reset-password?token={reset_token}"  # Update with your actual reset password URL
@@ -464,6 +594,29 @@ async def send_reset_password_email(email: str, reset_token: str):
     This link will expire in 1 hour.
 
     If you didn't request a password reset, please ignore this email.
+    """
+
+    message_obj = MessageSchema(
+        subject=subject,
+        recipients=[email],
+        body=message,
+        subtype="plain"
+    )
+
+    await fast_mail.send_message(message=message_obj)
+
+async def send_delete_account_email(email: str, deletion_token: str):
+    subject = "Delete your account for Predictum IT ChatApp"
+    delete_account_url = f"{os.getenv('FRONTEND_URL')}/delete-account?token={deletion_token}" 
+    
+    message = f"""
+    Please click the following link to delete your account permanently:
+    
+    {delete_account_url}
+    
+    This link will expire in 1 hour.
+
+    If you didn't request to delete your account, please ignore this email.
     """
 
     message_obj = MessageSchema(
@@ -494,6 +647,49 @@ def update_user_password(email: str, new_password: str):
     else:
         raise Exception("User not found")
 
+def delete_user(email: str):
+    # First find the user
+    query = "SELECT * FROM c WHERE c.email = @email"
+    parameters = [{"name": "@email", "value": email}]
+    
+    users = list(usercontainer.query_items(
+        query=query,
+        parameters=parameters,
+        enable_cross_partition_query=True
+    ))
+    
+    if users:
+        user = users[0]
+        user_id = user["id"]
+        logger.info(f"Deleting user with ID: {user_id}")
+
+        # Get all conversations associated with this user
+        conv_query = "SELECT * FROM c WHERE c.user_id = @user_id"
+        conv_parameters = [{"name": "@user_id", "value": user_id}]
+        
+        conversations = list(conversationcontainer.query_items(
+            query=conv_query,
+            parameters=conv_parameters,
+            enable_cross_partition_query=True
+        ))
+        logger.info(f"Found {len(conversations)} conversations to delete")
+
+        # Delete conversations
+        for conversation in conversations:
+            logger.info(f"Deleting conversation: {conversation['id']}")
+            conversationcontainer.delete_item(
+                item=conversation, 
+                partition_key=f'CHAT#{user_id}'
+            )
+
+        # Finally delete the user
+        usercontainer.delete_item(
+            item=user, 
+            partition_key=f'USER#{user_id}'
+        )
+    else:
+        raise Exception("User not found")
+    
 def get_user_by_email(email: str):
     query = "SELECT * FROM c WHERE c.email = @email"
     parameters = [{"name": "@email", "value": email}]
@@ -746,6 +942,20 @@ async def chat(message: str = Form(...), conversation: str = Form(default="[]"))
                 "response": response.choices[0].message.content
                 })
 
+        if "deepseek" in selectedmodel.lower():
+            messages.pop() #Remove the last item in the list, because it is duplicate for some reason
+            logger.info(f"deepseek messages: {messages}")
+            response = deepseek_client.chat.completions.create(
+                model=DEFAULT_SETTINGS["model"], 
+                messages=messages,
+                temperature=DEFAULT_SETTINGS["temperature"],
+                max_tokens=DEFAULT_SETTINGS["max_tokens"]
+            )
+            logger.info(f"deepseek response: {response}")
+            return JSONResponse(content={
+                "response": response.choices[0].message.content
+                })
+
         if "claude" in selectedmodel.lower():
             messages.pop(0) #Remove the first item in the list, as claude does not accept the system role
             messages.pop() #Remove the last item in the list, because it is duplicate for some reason
@@ -779,6 +989,7 @@ async def update_settings(settings: ChatSettings):
 async def get_models():
     models_json = os.getenv("AVAILABLE_MODELS", "[]")
     models = json.loads(models_json)
+    logger.info(f"Available models: {models}")
     return models
 
 # Save conversation

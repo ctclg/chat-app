@@ -1,14 +1,12 @@
-<!--request_new_password.html-->
+<!-- delete_account.html -->
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>Request New Password</title>
-    <link rel="stylesheet" href="../css/styles.css">
-    <link rel="icon" type="image/png" href="../images/logo-favicon.png">
+    <title>Delete Account</title>
+    <link rel="stylesheet" href="../static/css/styles.css">
+    <link rel="icon" type="image/png" href="../static/images/logo-favicon.png">
     <style>
         .container {
-            width: 300px;
             margin: 50px auto;
             padding: 20px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -22,6 +20,7 @@
         label {
             display: block;
             margin-bottom: 5px;
+            font-size: larger;
         }
 
         input {
@@ -34,13 +33,14 @@
         }
 
         button {
-            width: 180px;
+            width: 160px;
             padding: 10px;
             background-color: #007bff;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            font-size: large;
         }
 
         button:hover {
@@ -57,44 +57,40 @@
             .container {
                 zoom: 200%;
             }
-        }
+        }        
     </style>
 </head>
-
 <body>
     <div class="container">
-        <h1>Reset Password</h1>
-        <p style="font-size: large;">Enter your email address below to request a password reset link.</p><br>
-        <form id="requestNewPasswordForm">
-            <div class="form-group">
-                <label for="email">Email:</label>
-                <input type="email" id="email" required>
-            </div>
-            <button type="submit">Request Password Reset</button>
+        <h1>Delete account</h1>
+        <p style="font-size: larger;">Confirm that you want to delete your account.<br>Any saved conversations will also be deleted.<br>The action is permanent.</p><br>
+        <form id="deleteAccountForm">
+            <input type="hidden" id="token" value="{{ token }}">
+            <button type="submit">Delete Account</button>
         </form>
     </div>
 
     <script>
-        document.getElementById('email').focus();
-        document.getElementById('requestNewPasswordForm').addEventListener('submit', async (e) => {
+        document.getElementById('deleteAccountForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-
-            const email = document.getElementById('email').value;
-            const url = `/api/request-reset-password?email=${email}`;
-
-            const response = await fetch(url, {
+            
+            const token = document.getElementById('token').value;
+            
+            const response = await fetch('/api/delete-account', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                }
+                },
+                body: JSON.stringify({
+                    token: token
+                }),
             });
 
             const data = await response.json();
             alert(data.message);
-            window.location.href = '/';
-        });        
+            window.location.href = '/'; // Redirect to main page after password reset
+        });
     </script>
 
 </body>
-
 </html>
