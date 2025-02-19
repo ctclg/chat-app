@@ -80,13 +80,13 @@ function updateUIForAuthState() {
         saveConversationBtn.style.display = 'block';
         loginBtn.style.display = 'none';
         logoutBtn.style.display = 'block';
-        welcomeMessage.innerHTML = "Welcome "  + userEmail;    
+        welcomeMessage.innerHTML = "Welcome " + userEmail;
     } else {
         loadConversationsBtn.style.display = 'none';
         saveConversationBtn.style.display = 'none';
         loginBtn.style.display = 'block';
         logoutBtn.style.display = 'none';
-        welcomeMessage.innerHTML = "";    
+        welcomeMessage.innerHTML = "";
     }
 }
 
@@ -192,7 +192,7 @@ async function saveConversation(name, folder) {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    name: name,
+                    name: name.replace("'", ""),
                     folder: folder,
                     messages: conversationHistory
                 })
@@ -217,7 +217,7 @@ async function saveConversation(name, folder) {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    name: name,
+                    name: name.replace("'", ""),
                     folder: folder,
                     messages: conversationHistory
                 })
@@ -327,18 +327,17 @@ async function showSaveDialog() {
                             </option>`
     ).join('')}
                     </select>
-                    <button class="new-folder-button" type="button" onclick="showNewFolderInput()">
-                        New&nbsp;Folder
-                    </button>
                 </div>
             </div>
-            <div id="new-folder-input" class="form-group" style="display: none;">
-                <label for="new-folder">New Folder Name:</label>
+            <div id="new-folder-input" class="form-group" style="display: none;margin-top:-19px;">
                 <input type="text" id="new-folder" placeholder="Enter new folder name">
             </div>
             <div class="dialog-buttons">
-                <button class="save-button">Save</button>
-                <button class="cancel-button">Cancel</button>
+                <button id="new-folder-button" class="new-folder-button" type="button" onclick="showNewFolderInput()">New&nbsp;Folder</button>
+                <div class="right-buttons">
+                    <button class="save-button">Save</button>
+                    <button class="cancel-button">Cancel</button>
+                </div>
             </div>
         </div>
     `;
@@ -391,13 +390,16 @@ async function showSaveDialog() {
 function showNewFolderInput() {
     const folderSelect = document.getElementById('folder-select');
     const newFolderInput = document.getElementById('new-folder-input');
+    const newFolderButton = document.getElementById('new-folder-button')
 
     if (newFolderInput.style.display === 'none') {
         newFolderInput.style.display = 'block';
-        folderSelect.disabled = true;
+        folderSelect.style.display = 'none';
+        newFolderButton.innerHTML = "Back";
     } else {
         newFolderInput.style.display = 'none';
-        folderSelect.disabled = false;
+        folderSelect.style.display = 'block';
+        newFolderButton.innerHTML = "New Folder";
     }
 }
 
@@ -453,7 +455,9 @@ function getDefaultConversationName() {
     const firstMessage = conversationHistory[1];
     if (firstMessage) {
         // Use the first 50 characters of the message as default name
-        return firstMessage.content.substring(0, 70) + (firstMessage.content.length > 70 ? '...' : '');
+        Name  = firstMessage.content.substring(0, 70) + (firstMessage.content.length > 70 ? '...' : '');
+        Name = Name.replace("'", "");
+        return Name
     }
     return `Conversation ${formatDate(new Date())}`;
 }
@@ -781,13 +785,13 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
 
     // Read the value of systemPromptSupported from local storage
     const chatSettings = JSON.parse(localStorage.getItem('chatSettings'));
-    const selectedModel = chatSettings.model;   
-    const systemPromptSupported = chatSettings.system_prompt_supported;   
+    const selectedModel = chatSettings.model;
+    const systemPromptSupported = chatSettings.system_prompt_supported;
     console.log("selectedModel: " + selectedModel)
     console.log("systemPromptSupported: " + systemPromptSupported)
 
     if (systemPromptSupported == "Yes") {
-        systemPrompt = chatSettings.system_prompt; 
+        systemPrompt = chatSettings.system_prompt;
     } else {
         systemPrompt = "System message not supported for the selected model."
     }
@@ -1008,6 +1012,7 @@ async function loadModels() {
         models.forEach(model => {
             const option = document.createElement('option');
             option.value = model.value;
+            console.log("model.value: " + model.value)
             option.textContent = model.label;
             option.dataset.systemPromptSupported = model.system_prompt_supported;
             selectElement.appendChild(option);
@@ -1056,11 +1061,11 @@ function loadSettings() {
             const systemPromptArea = document.querySelector('#system-prompt');
             // Get the overlay message
             const overlay = document.querySelector('#system-prompt-overlay');
-            
+
             // Read the value of systemPromptSupported from local storage
             const chatSettings = JSON.parse(localStorage.getItem('chatSettings'));
-            const selectedModel = chatSettings.model;   
-            const systemPromptSupported = chatSettings.system_prompt_supported;   
+            const selectedModel = chatSettings.model;
+            const systemPromptSupported = chatSettings.system_prompt_supported;
             console.log("selectedModel: " + selectedModel)
             console.log("systemPromptSupported: " + systemPromptSupported)
 
@@ -1092,7 +1097,7 @@ function handleModelChange() {
     const systemPromptArea = document.querySelector('#system-prompt');
     // Get the overlay message
     const overlay = document.querySelector('#system-prompt-overlay');
-    
+
     // Check if the selected model supports system prompts
     if (selectedOption.dataset.systemPromptSupported === 'Yes') {
         // Enable the textarea
