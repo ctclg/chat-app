@@ -8,6 +8,11 @@ window.onload = async function () {
 
     const token = localStorage.getItem('token');
     const tokenExpiration = localStorage.getItem('token_expiration');
+    
+    //Get current chat
+    const currentConversation = localStorage.getItem('currentConversation');
+    document.getElementById('current-chat').innerHTML = "Conversation: " + currentConversation;
+    
 
     // Check token expiration on page load
     if (token && tokenExpiration) {
@@ -161,6 +166,11 @@ document.getElementById('message-input').addEventListener('keydown', function (e
         e.preventDefault(); // Prevent default to avoid newline
         const form = document.getElementById('chat-form');
         form.requestSubmit(); // This is more reliable than dispatchEvent
+
+        //Set star for current chat
+        const currentConversation = localStorage.getItem('currentConversation');
+        document.getElementById('current-chat').innerHTML = "Conversation: " + currentConversation + " *";
+        
         document.getElementById('message-input').focus();
     }
 });
@@ -239,7 +249,10 @@ async function saveConversation(name, folder) {
 
         // Update localStorage
         localStorage.setItem('currentFolder', folder);
+        localStorage.setItem('currentConversation', name);
+        document.getElementById('current-chat').innerHTML = "Conversation: " + name;
         localStorage.setItem('chatHistory', JSON.stringify(conversationHistory));
+        document.getElementById('message-input').focus();
 
         //alert('Conversation saved successfully!');
 
@@ -516,9 +529,9 @@ async function showConversationSelector(conversations) {
                                     </div>
                                 </div>
                                 <div class="conversation-actions">
-                                    <!--<button class="rename-btn" title="Rename">
+                                    <button class="rename-btn" title="Rename">
                                         <i class="fas fa-edit"></i>
-                                    </button>-->
+                                    </button>
                                     <button class="delete-btn" title="Delete">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -567,7 +580,11 @@ async function showConversationSelector(conversations) {
             if (!e.target.closest('.conversation-actions') &&
                 !e.target.closest('.name-edit')) {
                 const conversation = JSON.parse(item.dataset.conversation);
-                console.log('Selected conversation:', conversation); // Debug log
+                const nameContainer = item.querySelector('.conversation-name');                
+                const nameText = nameContainer.querySelector('.name-text');
+                //console.log('Selected conversation:', conversation); // Debug log
+                //console.log('nameText:', nameText); // Debug log
+                localStorage.setItem('currentConversation', nameText.textContent);
                 loadConversation(conversation);
                 dialog.remove();
             }
@@ -582,7 +599,6 @@ async function showConversationSelector(conversations) {
             const nameContainer = item.querySelector('.conversation-name');
             const nameText = nameContainer.querySelector('.name-text');
             const nameInput = nameContainer.querySelector('.name-edit');
-
             nameText.style.display = 'none';
             nameInput.style.display = 'block';
             nameInput.focus();
@@ -593,7 +609,7 @@ async function showConversationSelector(conversations) {
                 const newName = nameInput.value.trim();
                 if (newName && newName !== nameText.textContent) {
                     const conversation = JSON.parse(item.dataset.conversation);
-                    await renameConversation(conversation.id, newName, conversation.folder);
+                    await renameConversation(conversation.id, newName);
                     nameText.textContent = newName;
                 }
                 nameText.style.display = 'block';
@@ -635,20 +651,22 @@ async function showConversationSelector(conversations) {
 
 async function loadConversation(conversation) {
     try {
-        console.log('Loading conversation with ID:', conversation.id); // Debug log
-
+        //console.log('Loading conversation with ID:', conversation.id); // Debug log
         // Clear current chat
         document.getElementById('chat-messages').innerHTML = '';
         conversationHistory = [];
+        //Get current chat
+        const currentConversation = localStorage.getItem('currentConversation');
+        document.getElementById('current-chat').innerHTML = "Conversation: " + currentConversation;
 
         // Store the current folder and conversation ID
         localStorage.setItem('currentFolder', conversation.folder);
         currentConversationId = conversation.id;  // Set the ID
-        console.log('Set currentConversationId to:', currentConversationId); // Debug log
+        //console.log('Set currentConversationId to:', currentConversationId); // Debug log
 
         // Load the selected conversation
         const tmpconversationHistory = await getConversationMessages(conversation.id);
-        console.log('Loaded conversation:', tmpconversationHistory); // Debug log
+        //console.log('Loaded conversation:', tmpconversationHistory); // Debug log
 
         // Convert to the desired format
         conversationHistory = tmpconversationHistory[0].messages.map(function (message) {
@@ -659,11 +677,7 @@ async function loadConversation(conversation) {
                 model: message.model
             };
         });
-
-        console.log("conversationHistory: " + JSON.stringify(conversationHistory));
-
-        // Set a wait time of 2 seconds (2000 milliseconds)
-        //setTimeout(myFunction, 4000);
+        //console.log("conversationHistory: " + JSON.stringify(conversationHistory));
 
         // Display all messages
         conversationHistory.forEach(msg => {
@@ -676,6 +690,8 @@ async function loadConversation(conversation) {
                 msg.role === 'assistant' ? msg.model : null
             );
         });
+
+        document.getElementById('message-input').focus();
 
         // Save to localStorage with the ID
         localStorage.setItem('chatHistory', JSON.stringify(conversationHistory));
@@ -719,22 +735,21 @@ async function getConversationMessages(conversationId) {
     }
 }
 
-async function renameConversation(id, newName, folder) {
+async function renameConversation(id, newName) {
     try {
         const token = localStorage.getItem('token');
         if (!token) {
             throw new Error('No authentication token found');
         }
 
-        const response = await fetch(`/api/conversations/${id}`, {
+        const response = await fetch(`/api/rename-conversation/${id}`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                name: newName,
-                folder: folder
+                name: newName
             })
         });
 
@@ -986,11 +1001,15 @@ function hideTypingIndicator() {
 document.getElementById('clear-chat').addEventListener('click', () => {
     if (confirm('Are you sure you want to clear the conversation?')) {
         document.getElementById('chat-messages').innerHTML = '';
+        document.getElementById("current-chat").innerHTML = "Conversation: New";
+        localStorage.setItem('currentConversation', "New");
         conversationHistory = [];
         currentConversationId = null;
         localStorage.removeItem('chatHistory');
         localStorage.removeItem('currentConversationId');
         localStorage.removeItem('currentFolder');
+        document.getElementById('message-input').focus();
+    } else {    
         document.getElementById('message-input').focus();
     }
 });
