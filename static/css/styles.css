@@ -36,18 +36,34 @@ p {
     flex: 1;
     align-items: center;
     justify-content: space-between;
-    padding: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
     max-height: 30px;
 }
 
+.subtop-section {
+    background-color: gray;
+    color: #fff;
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0px;
+    padding-bottom: 4px;
+    padding-left: 12px;
+    padding-right: 15px;
+}
 
 .welcome-user {
-    margin-top: 43px;
-    position: absolute; 
-    right: 7px; 
-    top: 0px;
-    font-size: 6pt;
-    color: black;
+    font-size: 9pt;
+    color: white;
+}
+
+.chat-name {
+    font-size: 9pt;
+    color: white;
 }
 
 .button-container {
@@ -605,7 +621,7 @@ button:hover {
         display: none;
     }
     .chat-messages {
-        height: calc(100vh - 190px);
+        height: calc(100vh - 200px);
         padding-left: 20px;
         padding-right: 20px;
     }    

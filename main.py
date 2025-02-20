@@ -1251,8 +1251,8 @@ async def check_conversation_exists(
             status_code=500,
             detail="Failed to check conversation existence"
         )
-'''
-@app.put("/api/conversations/{conversation_id}")
+
+@app.put("/api/rename-conversation/{conversation_id}")
 async def rename_conversation(
     conversation_id: str,
     request: dict,
@@ -1261,8 +1261,6 @@ async def rename_conversation(
     try:
         # Check if conversation exists
         partition_key = f'CHAT#{current_user["id"]}'
-        
-        # Update conversation
         conversation = conversationcontainer.read_item(
             item=conversation_id,
             partition_key=partition_key
@@ -1284,7 +1282,6 @@ async def rename_conversation(
             status_code=500,
             detail="Failed to rename conversation"
         )
-'''
 
 # Debugging routes
 @app.get("/api/debug/routes")
