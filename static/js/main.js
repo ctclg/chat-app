@@ -8,11 +8,15 @@ window.onload = async function () {
 
     const token = localStorage.getItem('token');
     const tokenExpiration = localStorage.getItem('token_expiration');
-    
+
     //Get current chat
     const currentConversation = localStorage.getItem('currentConversation');
-    document.getElementById('current-chat').innerHTML = "Conversation: " + currentConversation;
-    
+    if (currentConversation == null) {
+        localStorage.setItem('currentConversation', "New");
+        document.getElementById('current-chat').innerHTML = "Conversation: " + "New";
+    } else {
+        document.getElementById('current-chat').innerHTML = "Conversation: " + currentConversation;
+    }
 
     // Check token expiration on page load
     if (token && tokenExpiration) {
@@ -85,13 +89,13 @@ function updateUIForAuthState() {
         saveConversationBtn.style.display = 'block';
         loginBtn.style.display = 'none';
         logoutBtn.style.display = 'block';
-        welcomeMessage.innerHTML = "Welcome " + userEmail;
+        //welcomeMessage.innerHTML = "Welcome " + userEmail;
     } else {
         loadConversationsBtn.style.display = 'none';
         saveConversationBtn.style.display = 'none';
         loginBtn.style.display = 'block';
         logoutBtn.style.display = 'none';
-        welcomeMessage.innerHTML = "";
+        //welcomeMessage.innerHTML = "";
     }
 }
 
@@ -167,10 +171,9 @@ document.getElementById('message-input').addEventListener('keydown', function (e
         const form = document.getElementById('chat-form');
         form.requestSubmit(); // This is more reliable than dispatchEvent
 
-        //Set star for current chat
-        const currentConversation = localStorage.getItem('currentConversation');
-        document.getElementById('current-chat').innerHTML = "Conversation: " + currentConversation + " *";
-        
+        //Scroll to the bottom of the chat and set focus to the input field
+        //const messagesContainer = document.getElementById('chat-messages');
+        //messagesContainer.scrollTop = messagesContainer.scrollHeight;
         document.getElementById('message-input').focus();
     }
 });
@@ -178,6 +181,7 @@ document.getElementById('message-input').addEventListener('keydown', function (e
 async function saveConversation(name, folder) {
     try {
         const token = localStorage.getItem('token');
+
         if (!token) {
             alert('Please login to save conversations');
             return;
@@ -304,8 +308,30 @@ async function getConversations() {
     }
 }
 
-document.getElementById('save-conversation').addEventListener('click', () => {
-    showSaveDialog();
+document.getElementById('save-conversation').addEventListener('click', async () => {
+    // Get references to elements
+    const chatMessages = document.getElementById('chat-messages');
+    const currentChatElement = document.getElementById('current-chat');
+    const saveButton = document.getElementById('save-conversation');
+    const messageInput = document.getElementById('message-input');
+
+    // Show loading overlay
+    const loadingOverlay = showLoadingOverlay(chatMessages, 'Saving conversation...');
+    saveButton.disabled = true;
+    messageInput.disabled = true;
+    
+    try {
+        await showSaveDialog();
+    } catch (error) {
+        console.error('Error showing save dialog:', error);
+        alert('Error showing save dialog');
+    } finally {
+        // Reset button state
+        removeLoadingOverlay(loadingOverlay);
+        saveButton.disabled = false;
+        messageInput.disabled = false;
+        messageInput.focus();
+    }
 });
 
 async function showSaveDialog() {
@@ -323,7 +349,7 @@ async function showSaveDialog() {
             <h3>Save Conversation</h3>
             <div class="form-group">
                 <label for="conversation-name">Conversation Name:</label>
-                <input type="text" id="conversation-name" 
+                <input type="text" id="conversation-name" maxlength="50" 
                     placeholder="Enter a name for this conversation"
                     value="${getDefaultConversationName()}"
                 >
@@ -348,7 +374,7 @@ async function showSaveDialog() {
             <div class="dialog-buttons">
                 <button id="new-folder-button" class="new-folder-button" type="button" onclick="showNewFolderInput()">New&nbsp;Folder</button>
                 <div class="right-buttons">
-                    <button class="save-button">Save</button>
+                    <button id="save-button" class="save-button">Save</button>
                     <button class="cancel-button">Cancel</button>
                 </div>
             </div>
@@ -383,6 +409,16 @@ async function showSaveDialog() {
             return;
         }
 
+        // Get references to elements
+        const chatMessages = document.getElementById('chat-messages');
+        const messageInput = document.getElementById('message-input');
+        const saveButton = document.getElementById('save-button');
+
+        // Show loading overlay
+        const loadingOverlay = showLoadingOverlay(chatMessages, 'Saving conversation...');
+        messageInput.disabled = true;
+        saveButton.disabled = true;
+
         // Check if conversation with same name exists in the folder
         const exists = await checkConversationExists(name, folder);
         if (exists) {
@@ -394,10 +430,15 @@ async function showSaveDialog() {
             await saveConversation(name, folder);
             dialog.remove();
         }
+        // Reset button state
+        removeLoadingOverlay(loadingOverlay);
+        saveButton.disabled = false;
+        messageInput.disabled = false;
+        messageInput.focus();
     };
 
     // Focus the input field
-    document.getElementById('conversation-name').focus();
+    document.getElementById('message-input').focus();
 }
 
 function showNewFolderInput() {
@@ -463,12 +504,20 @@ async function checkConversationExists(name, folder) {
 }
 
 function getDefaultConversationName() {
+    // Get the current conversation name from localStorage
+    const currentConversation = localStorage.getItem('currentConversation');
+
+    if (currentConversation != 'New') {
+        // Keep the same name as when it was opened
+        Name = currentConversation;
+        return Name
+    }
+
     // Get the first non-system message content
-    //const firstMessage = conversationHistory.find(msg => msg.role !== 'system');
     const firstMessage = conversationHistory[1];
     if (firstMessage) {
         // Use the first 50 characters of the message as default name
-        Name  = firstMessage.content.substring(0, 70) + (firstMessage.content.length > 70 ? '...' : '');
+        Name = firstMessage.content.substring(0, 50) + (firstMessage.content.length > 50 ? '...' : '');
         Name = Name.replace("'", "");
         return Name
     }
@@ -476,14 +525,37 @@ function getDefaultConversationName() {
 }
 
 document.getElementById('load-conversations').addEventListener('click', async () => {
+    const chatMessages = document.getElementById('chat-messages');
+    const loadButton = document.getElementById('load-conversations');
+    const messageInput = document.getElementById('message-input');
+
+    // Check if there are existing messages and need confirmation
+    if (chatMessages.innerHTML.length > 0) {
+        if (!confirm('Are you sure you want to clear the current conversation?')) {
+            messageInput.focus();
+            return;
+        }
+    }
+    // Show loading overlay
+    const loadingOverlay = showLoadingOverlay(chatMessages, 'Opening conversations...');
+    messageInput.disabled = true;
+    loadButton.disabled = true;
     try {
-        // Only get conversations from Cosmos DB
         const conversations = await getConversations();
+        // Reset loading state before showing modal
+        loadButton.disabled = false;
+
+        // Show modal
         showConversationSelector(conversations);
     } catch (error) {
         console.error('Failed to load conversations:', error);
         alert('Failed to load conversations');
-        logout();
+    } finally {
+        // Always enable input and focus
+        removeLoadingOverlay(loadingOverlay);
+        messageInput.disabled = false;
+        messageInput.focus();
+        loadButton.disabled = false;
     }
 });
 
@@ -580,7 +652,7 @@ async function showConversationSelector(conversations) {
             if (!e.target.closest('.conversation-actions') &&
                 !e.target.closest('.name-edit')) {
                 const conversation = JSON.parse(item.dataset.conversation);
-                const nameContainer = item.querySelector('.conversation-name');                
+                const nameContainer = item.querySelector('.conversation-name');
                 const nameText = nameContainer.querySelector('.name-text');
                 //console.log('Selected conversation:', conversation); // Debug log
                 //console.log('nameText:', nameText); // Debug log
@@ -650,23 +722,33 @@ async function showConversationSelector(conversations) {
 }
 
 async function loadConversation(conversation) {
+    // Get references to elements
+    const chatMessages = document.getElementById('chat-messages');
+    const currentChatElement = document.getElementById('current-chat');
+    const messageInput = document.getElementById('message-input');
+
+    //Get the current chat just in case we need to restore it
+    const originalChatContent = chatMessages.innerHTML;
+    const originalCurrentChat = currentChatElement.innerHTML;
+
+    // Show loading overlay
+    const loadingOverlay = showLoadingOverlay(chatMessages, 'Loading conversation...');
+    messageInput.disabled = true;
+
     try {
-        //console.log('Loading conversation with ID:', conversation.id); // Debug log
         // Clear current chat
-        document.getElementById('chat-messages').innerHTML = '';
         conversationHistory = [];
-        //Get current chat
+
+        // Get current chat
         const currentConversation = localStorage.getItem('currentConversation');
-        document.getElementById('current-chat').innerHTML = "Conversation: " + currentConversation;
+        currentChatElement.innerHTML = "Conversation: " + currentConversation;
 
         // Store the current folder and conversation ID
         localStorage.setItem('currentFolder', conversation.folder);
-        currentConversationId = conversation.id;  // Set the ID
-        //console.log('Set currentConversationId to:', currentConversationId); // Debug log
+        currentConversationId = conversation.id;
 
         // Load the selected conversation
         const tmpconversationHistory = await getConversationMessages(conversation.id);
-        //console.log('Loaded conversation:', tmpconversationHistory); // Debug log
 
         // Convert to the desired format
         conversationHistory = tmpconversationHistory[0].messages.map(function (message) {
@@ -677,7 +759,9 @@ async function loadConversation(conversation) {
                 model: message.model
             };
         });
-        //console.log("conversationHistory: " + JSON.stringify(conversationHistory));
+
+        // Clear messages
+        chatMessages.innerHTML = '';
 
         // Display all messages
         conversationHistory.forEach(msg => {
@@ -691,15 +775,21 @@ async function loadConversation(conversation) {
             );
         });
 
-        document.getElementById('message-input').focus();
-
         // Save to localStorage with the ID
         localStorage.setItem('chatHistory', JSON.stringify(conversationHistory));
-        localStorage.setItem('currentConversationId', currentConversationId); // Save ID to localStorage
+        localStorage.setItem('currentConversationId', currentConversationId);
 
     } catch (error) {
         console.error('Error loading conversation:', error);
         alert('Error loading conversation');
+        // Restore original content on error
+        chatMessages.innerHTML = originalChatContent;
+        currentChatElement.innerHTML = originalCurrentChat;
+    } finally {
+        // Always enable input and focus
+        removeLoadingOverlay(loadingOverlay);
+        messageInput.disabled = false;
+        messageInput.focus();
     }
 }
 
@@ -870,6 +960,16 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
             // Save updated conversation to localStorage
             localStorage.setItem('chatHistory', JSON.stringify(conversationHistory));
             document.getElementById('message-input').focus();
+
+            // Scroll to the bottom of the chat
+            const messagesContainer = document.getElementById('chat-messages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            //Set star for current chat
+            const currentConversation = localStorage.getItem('currentConversation');
+            document.getElementById('current-chat').innerHTML = "Conversation: " + currentConversation + " *";
+
+
         } else {
             console.error('Server error:', data);
             addMessage(`Error: ${data.error || 'Unknown error occurred'}`, 'bot-message error');
@@ -977,7 +1077,7 @@ function addMessage(message, className, timestamp, model = null) {
     messageElement.appendChild(msgtimestamp);
     messageElement.appendChild(actionsDiv);
     messagesContainer.appendChild(messageElement);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    //messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
 // Add typing indicator functions
@@ -985,8 +1085,8 @@ function showTypingIndicator() {
     const indicator = document.getElementById('typing-indicator');
     if (indicator) {
         indicator.style.display = 'flex';//flex
-        const messagesContainer = document.getElementById('chat-messages');
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        //const messagesContainer = document.getElementById('chat-messages');
+        //messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 }
 
@@ -999,18 +1099,20 @@ function hideTypingIndicator() {
 
 // Clear chat
 document.getElementById('clear-chat').addEventListener('click', () => {
-    if (confirm('Are you sure you want to clear the conversation?')) {
-        document.getElementById('chat-messages').innerHTML = '';
-        document.getElementById("current-chat").innerHTML = "Conversation: New";
-        localStorage.setItem('currentConversation', "New");
-        conversationHistory = [];
-        currentConversationId = null;
-        localStorage.removeItem('chatHistory');
-        localStorage.removeItem('currentConversationId');
-        localStorage.removeItem('currentFolder');
-        document.getElementById('message-input').focus();
-    } else {    
-        document.getElementById('message-input').focus();
+    if (document.getElementById('chat-messages').innerHTML.length > 0) {
+        if (confirm('Are you sure you want to clear the current conversation?')) {
+            document.getElementById('chat-messages').innerHTML = '';
+            document.getElementById("current-chat").innerHTML = "Conversation: New";
+            localStorage.setItem('currentConversation', "New");
+            conversationHistory = [];
+            currentConversationId = null;
+            localStorage.removeItem('chatHistory');
+            localStorage.removeItem('currentConversationId');
+            localStorage.removeItem('currentFolder');
+            document.getElementById('message-input').focus();
+        } else {
+            document.getElementById('message-input').focus();
+        }
     }
 });
 
@@ -1412,4 +1514,22 @@ function generateUUID() {
         const v = c === 'x' ? r : (r & 0x3 | 0x8); // Adjust according to UUID version 4
         return v.toString(16); // Convert to hexadecimal
     });
+}
+
+function showLoadingOverlay(container, message = 'Loading...') {
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.innerHTML = `
+        <div class="loading-spinner">
+            ${message}
+        </div>
+    `;
+    container.appendChild(overlay);
+    return overlay;
+}
+
+function removeLoadingOverlay(overlay) {
+    if (overlay && overlay.parentElement) {
+        overlay.parentElement.removeChild(overlay);
+    }
 }
