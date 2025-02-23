@@ -215,7 +215,28 @@ export class Chat {
         contentDiv.classList.add('message-content');
     
         if (message.role === 'assistant' && typeof marked !== 'undefined') {
-            contentDiv.innerHTML = marked.parse(message.content);
+            const markedContent = marked.parse(message.content);
+    
+            // Create a temporary div to parse the HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = markedContent;
+            
+            // Find all pre elements and wrap them with code-wrapper
+            const preElements = tempDiv.querySelectorAll('pre');
+            preElements.forEach(pre => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'code-wrapper';
+                
+                // Clone the pre element
+                const preClone = pre.cloneNode(true);
+                
+                // Replace the original pre with the wrapped version
+                wrapper.appendChild(preClone);
+                //wrapper.appendChild(copyButton);
+                pre.parentNode.replaceChild(wrapper, pre);
+            });
+            
+            contentDiv.innerHTML = tempDiv.innerHTML;
             Prism.highlightAllUnder(contentDiv);
         } else {
             contentDiv.style.whiteSpace = 'pre-wrap';
@@ -282,8 +303,7 @@ export class Chat {
         // Copy button
         const copyButton = document.createElement('button');
         copyButton.classList.add(message.role === 'user' ? 'action-button-user' : 'action-button');
-        //copyButton.innerHTML = '⧉ Copy';
-        copyButton.innerHTML = '<i class="fas fa-copy"></i>&nbsp;Copy';
+        copyButton.innerHTML = '<i class="fas fa-copy"></i>';//&nbsp;Copy';
         copyButton.onclick = () => this.handleCopy(copyButton, message.content);
         actionsDiv.appendChild(copyButton);
     
@@ -295,8 +315,7 @@ export class Chat {
             // Add delete button
             const deleteButton = document.createElement('button');
             deleteButton.classList.add(message.role === 'user' ? 'action-button-user' : 'action-button');
-            //deleteButton.innerHTML =  '⌦ Delete';
-            deleteButton.innerHTML = '<i class="fas fa-trash"></i>&nbsp;Delete';
+            deleteButton.innerHTML = '<i class="fas fa-trash"></i>';//&nbsp;Delete';
             deleteButton.onclick = () => this.deleteMessage(messageElement);
             actionsDiv.appendChild(deleteButton);
     
@@ -304,8 +323,7 @@ export class Chat {
             if (message.role === 'user') {
                 const regenerateButton = document.createElement('button');
                 regenerateButton.classList.add(message.role === 'user' ? 'action-button-user' : 'action-button');
-                //regenerateButton.innerHTML = '↻ Resend';
-                regenerateButton.innerHTML = '<i class="fas fa-redo"></i>&nbsp;Resend';
+                regenerateButton.innerHTML = '<i class="fas fa-redo"></i>';//&nbsp;Resend';
                 regenerateButton.onclick = () => this.regenerateResponse();
                 actionsDiv.appendChild(regenerateButton);
             }
@@ -318,7 +336,7 @@ export class Chat {
         navigator.clipboard.writeText(content)
             .then(() => {
                 button.innerHTML = '✓ Copied!';
-                setTimeout(() => button.innerHTML = '<i class="fas fa-copy"></i>&nbsp;Copy', 2000);
+                setTimeout(() => button.innerHTML = '<i class="fas fa-copy"></i>', 2000);//&nbsp;Copy', 2000);
             });
     }
 
@@ -407,22 +425,35 @@ export class Chat {
     }
 
     addCopyButtonToCodeBlocks() {
-        document.querySelectorAll('.message-content pre').forEach(block => {
+        document.querySelectorAll('.code-wrapper').forEach(wrapper => {
+            // Get the language from the code element's class
+            const codeElement = wrapper.querySelector('code');
+            const languageClass = Array.from(codeElement.classList)
+                .find(className => className.startsWith('language-'));
+            const language = languageClass ? languageClass.replace('language-', '') : 'text';
+    
+            // Create language header
+            const header = document.createElement('div');
+            header.className = 'code-header';
+            header.textContent = language.toUpperCase();
+    
+            // Create copy button
             const button = document.createElement('button');
             button.className = 'copy-code-button';
-            button.innerHTML = '<i class="fas fa-copy"></i>&nbsp;Copy';
+            button.innerHTML = '<i class="fas fa-copy"></i>';
             
             button.addEventListener('click', () => {
-                const code = block.querySelector('code');
-                navigator.clipboard.writeText(code.textContent);
+                navigator.clipboard.writeText(codeElement.textContent);
                 button.innerHTML = '✓ Copied!';
-                setTimeout(() => button.innerHTML = '<i class="fas fa-copy"></i>&nbsp;Copy', 2000);
+                setTimeout(() => button.innerHTML = '<i class="fas fa-copy"></i>', 2000);
             });
             
-            block.appendChild(button);
+            // Add header and button to wrapper
+            header.appendChild(button); // Put button in header
+            wrapper.insertBefore(header, wrapper.firstChild);
         });
     }
-
+    
     deleteMessage(messageElement) {
         // Remove from DOM
         messageElement.remove();
