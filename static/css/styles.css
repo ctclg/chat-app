@@ -116,22 +116,23 @@ p {
 .message-actions {
     position: absolute;
     right: 10px;
-    top: 5px;
+    top: 6px;
     display: inline-block;
 }
 
 .message:hover .message-actions {
     display: flex;
-    gap: 5px;
+    gap: 0px;
 }
 
 .action-button {
     background: none;
     border: none;
-    padding: 2px 5px;
+    padding: 0px 0px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
     color: #5a6268;
+    font-style: italic;
 }
 
 .action-button:hover {
@@ -142,16 +143,17 @@ p {
 .action-button-user {
     background: none;
     border: none;
-    padding: 2px 5px;
+    padding: 0px 0px;
     cursor: pointer;
-    font-size: 12px;
-    color: white;
-    opacity: 0.7;
+    font-size: 11px;
+    color: whitesmoke;
+    opacity: 1;
     transition: opacity 0.2s;
+    font-style: italic;
 }
 
 .action-button-user:hover {
-    color: whitesmoke;
+    color: wheat;
     background: none;
     opacity: 1;
 }
@@ -199,10 +201,12 @@ p {
 .user-message-line {
     font-size: 0.7rem;
     color: floralwhite;
-    height: 16px;
+    height: 18px;
     border-bottom: 1px solid;
     border-bottom-color: floralwhite;
     position: relative;
+    margin-top: -6px;
+    font-style: italic;
 }
 
 .assistant-message {
@@ -215,10 +219,12 @@ p {
 .assistant-message-line {
     font-size: 0.7rem;
     color: #5a6268;
-    height: 16px;
+    height: 18px;
     border-bottom: 1px solid;
     border-bottom-color: #5a6268;
     position: relative;
+    margin-top: -6px;
+    font-style: italic;
 }
 
 .system-message {
@@ -997,15 +1003,16 @@ button:hover {
     position: absolute;
     bottom: 5px;
     right: 5px;
-    padding: 5px 10px;
-    min-width: 10px !important;
-    background: #fff;
+    padding: 3px 5px !important;
+    min-width: 5px !important;
+    background: silver;
     border: 1px solid #ddd;
     border-radius: 4px;
     cursor: pointer;
+    font-size: 10px;
     display: none; /* Hidden by default */
 }
 
 .copy-code-button:hover {
-    background: #f0f0f0;
+    background: gray;
 }

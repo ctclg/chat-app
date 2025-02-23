@@ -157,7 +157,7 @@ export class Chat {
 
     addUserMessage(message) {
         this.addMessage({
-            content: message, //escapeHTML(message),
+            content: message, 
             role: 'user',
             timestamp: formatDate(new Date())
         });
@@ -245,13 +245,17 @@ export class Chat {
                 this.addActionButtons(previousLastMessage, {
                     role: previousLastMessage.classList.contains('user-message') ? 'user' : 'assistant',
                     content: previousLastMessage.querySelector('.message-content').textContent
-                });
+                }, 'All');
             }
         }
     
-        // Add action buttons to new message
-        this.addActionButtons(messageElement, message);
-        
+        // Add action buttons to new assistant message
+        if (message.role === 'user') {
+            this.addActionButtons(messageElement, message, 'All');
+        } else {
+            this.addActionButtons(messageElement, message, 'All');
+        }
+
         // Save to history if not already there
         if (!this.history.some(m => 
             m.content === message.content && 
@@ -271,14 +275,15 @@ export class Chat {
         }
     }
 
-    addActionButtons(messageElement, message) {
+    addActionButtons(messageElement, message, option) {
         const actionsDiv = document.createElement('div');
         actionsDiv.classList.add('message-actions');
     
         // Copy button
         const copyButton = document.createElement('button');
         copyButton.classList.add(message.role === 'user' ? 'action-button-user' : 'action-button');
-        copyButton.innerHTML = '📋 Copy';
+        //copyButton.innerHTML = '⧉ Copy';
+        copyButton.innerHTML = '<i class="fas fa-copy"></i>&nbsp;Copy';
         copyButton.onclick = () => this.handleCopy(copyButton, message.content);
         actionsDiv.appendChild(copyButton);
     
@@ -286,11 +291,12 @@ export class Chat {
         const messages = Array.from(this.chatMessages.querySelectorAll('.message'));
         const isLastMessage = messages.length === 0 || messages[messages.length - 1] === messageElement;
         
-        if (isLastMessage) {
+        if (isLastMessage && option == 'All') {
             // Add delete button
             const deleteButton = document.createElement('button');
             deleteButton.classList.add(message.role === 'user' ? 'action-button-user' : 'action-button');
-            deleteButton.innerHTML = '🗑️ Delete';
+            //deleteButton.innerHTML =  '⌦ Delete';
+            deleteButton.innerHTML = '<i class="fas fa-trash"></i>&nbsp;Delete';
             deleteButton.onclick = () => this.deleteMessage(messageElement);
             actionsDiv.appendChild(deleteButton);
     
@@ -298,7 +304,8 @@ export class Chat {
             if (message.role === 'user') {
                 const regenerateButton = document.createElement('button');
                 regenerateButton.classList.add(message.role === 'user' ? 'action-button-user' : 'action-button');
-                regenerateButton.innerHTML = '🔄 Submit';
+                //regenerateButton.innerHTML = '↻ Resend';
+                regenerateButton.innerHTML = '<i class="fas fa-redo"></i>&nbsp;Resend';
                 regenerateButton.onclick = () => this.regenerateResponse();
                 actionsDiv.appendChild(regenerateButton);
             }
@@ -311,7 +318,7 @@ export class Chat {
         navigator.clipboard.writeText(content)
             .then(() => {
                 button.innerHTML = '✓ Copied!';
-                setTimeout(() => button.innerHTML = '📋 Copy', 2000);
+                setTimeout(() => button.innerHTML = '<i class="fas fa-copy"></i>&nbsp;Copy', 2000);
             });
     }
 
@@ -357,7 +364,7 @@ export class Chat {
     saveHistory() {
         try {
             localStorage.setItem('chatHistory', JSON.stringify(this.history));
-            console.log('History saved:', this.history); // For debugging
+            //console.log('History saved:', this.history); // For debugging
         } catch (e) {
             console.error('Error saving chat history:', e);
         }
@@ -383,7 +390,7 @@ export class Chat {
                     
                     // Add new action buttons
                     const message = this.history[this.history.length - 1];
-                    this.addActionButtons(lastMessage, message);
+                    this.addActionButtons(lastMessage, message, 'All');
                 }
             } catch (e) {
                 console.error('Error loading chat history:', e);
@@ -403,13 +410,13 @@ export class Chat {
         document.querySelectorAll('.message-content pre').forEach(block => {
             const button = document.createElement('button');
             button.className = 'copy-code-button';
-            button.innerHTML = '📋';
+            button.innerHTML = '<i class="fas fa-copy"></i>&nbsp;Copy';
             
             button.addEventListener('click', () => {
                 const code = block.querySelector('code');
                 navigator.clipboard.writeText(code.textContent);
-                button.innerHTML = '✓';
-                setTimeout(() => button.innerHTML = '📋', 2000);
+                button.innerHTML = '✓ Copied!';
+                setTimeout(() => button.innerHTML = '<i class="fas fa-copy"></i>&nbsp;Copy', 2000);
             });
             
             block.appendChild(button);
@@ -458,14 +465,14 @@ export class Chat {
             // we need to ensure the regenerate button appears
             const wasAssistantMessage = messageElement.classList.contains('assistant-message');
             if (wasAssistantMessage && isUserMessage) {
-                this.addActionButtons(lastMessage, message);
+                this.addActionButtons(lastMessage, message, 'All');
             } else {
-                this.addActionButtons(lastMessage, message);
+                this.addActionButtons(lastMessage, message, 'All');
             }
         }
     
         // For debugging
-        console.log('Updated history after deletion:', this.history);
+        //console.log('Updated history after deletion:', this.history);
     }
     
     async regenerateResponse() {
