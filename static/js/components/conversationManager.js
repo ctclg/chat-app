@@ -306,6 +306,7 @@ export class ConversationManager {
 
             chatMessages.innerHTML = '';
             this.chat.history.forEach(msg => this.chat.addMessage(msg));
+            this.chat.addCopyButtonToCodeBlocks();
 
             localStorage.setItem('chatHistory', JSON.stringify(this.chat.history));
             localStorage.setItem('currentConversationId', this.currentId);
