@@ -131,12 +131,14 @@ p {
     padding: 0px 0px;
     cursor: pointer;
     font-size: 11px;
-    color: #5a6268;
+    color: gray;
     font-style: italic;
+    min-width: 20px !important;
+    margin-right: 7px;
 }
 
 .action-button:hover {
-    color: #007bff;
+    color:black;
     background: none;
 }
 
@@ -150,6 +152,8 @@ p {
     opacity: 1;
     transition: opacity 0.2s;
     font-style: italic;
+    min-width: 20px !important;
+    margin-right: 7px;
 }
 
 .action-button-user:hover {
@@ -160,21 +164,54 @@ p {
 
 /* Markdown styles */
 .message-content {
-    margin-right: 20px;
+    margin-right: 10px;
     margin-top: 5px;
     font-size: 14px;
+    border-radius: 10px;
+}
+
+/* New wrapper styles */
+.code-wrapper {
+    position: relative;  /* Important for absolute positioning of button */
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+    /*margin: 1em 0;*/
+}
+
+.code-header {
+    padding-left: 15px;
+    padding-right: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border-radius: 10px 10px 0 0;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: #666;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    margin-bottom: -9px;
 }
 
 .message-content pre {
-    background-color: rgba(0, 0, 0, 0.05);
-    padding: 10px;
-    border-radius: 5px;
+    background-color: transparent;  /* Remove background as it's now on wrapper */
     overflow-x: auto;
+    line-height: 0.9 !important;
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+    margin-bottom: 15px !important;
 }
 
 .message-content code {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.8em !important;
+}
+
+/* For inline code */
+.message-content :not(pre) > code {
     background-color: rgba(0, 0, 0, 0.05);
-    padding: 2px 4px;
+    padding: 0.2em 0.4em;
     border-radius: 3px;
 }
 
@@ -185,6 +222,32 @@ p {
 
 .message-content a:hover {
     text-decoration: underline;
+}
+
+.copy-code-button {
+    position: static;
+    top: 2px;
+    right: 4px;
+    padding: 3px 5px !important;
+    min-width: 5px !important;
+    color: gray;
+    background: transparent;
+    /*border: 1px solid #ddd;*/
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 10px;
+    display: block; /* Hidden by default */
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.code-wrapper:hover .copy-code-button {
+    opacity: 1;
+}
+
+.copy-code-button:hover {
+    color: black;
+    background: transparent;
 }
 
 .user-message {
@@ -213,7 +276,7 @@ p {
     background-color: #e9ecef;
     color: black;
     margin-right: 20%;
-    margin-left: 0;
+    margin-left: -15px;
 }
 
 .assistant-message-line {
@@ -245,7 +308,7 @@ p {
 }
 
 .scroll-controls {
-    width: 10px;
+    width: 15px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -253,8 +316,8 @@ p {
 }
 
 .scroll-icon {
-    width: 20px;
-    height: 20px;
+    width: 15px;
+    height: 15px;
     background-color: gray;
     color: #fff;
     border-radius: 50%;
@@ -266,7 +329,7 @@ p {
 }
 
 .scroll-icon i {  /* Added this to target the Font Awesome icons */
-    font-size: 12px;  /* Adjust this value to make the arrows smaller */
+    font-size: 9px;  /* Adjust this value to make the arrows smaller */
 }
 
 .scroll-icon:hover {
@@ -636,6 +699,9 @@ button:hover {
 }
 
 @media (hover: none) {
+    .message-actions {
+        display: flex;
+    }
     .form-group textarea {
         width: 93%;
     }
@@ -665,7 +731,7 @@ button:hover {
         margin-right: 0%;
     }
     .copy-code-button {
-        display: block !important; /* Force display on mobile */
+        opacity: 1;
     }
 }
 
@@ -678,7 +744,7 @@ button:hover {
         padding-left: 20px;
         padding-right: 20px;
     }    
-    .message-content pre:hover .copy-code-button {
+    .message-content code:hover .copy-code-button {
         display: block;
     }
 }
@@ -978,41 +1044,3 @@ button:hover {
     100% { transform: rotate(360deg); }
 }
 
-.message-content pre {
-    background-color: #f5f5f5;
-    border-radius: 4px;
-    padding: 1em;
-    overflow-x: auto;
-    position: relative;
-    padding-bottom: 35px; /* Add some space for the button */
-}
-
-.message-content code {
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    font-size: 0.9em;
-}
-
-/* For inline code */
-.message-content :not(pre) > code {
-    background-color: rgba(0, 0, 0, 0.05);
-    padding: 0.2em 0.4em;
-    border-radius: 3px;
-}
-
-.copy-code-button {
-    position: absolute;
-    bottom: 5px;
-    right: 5px;
-    padding: 3px 5px !important;
-    min-width: 5px !important;
-    background: silver;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 10px;
-    display: none; /* Hidden by default */
-}
-
-.copy-code-button:hover {
-    background: gray;
-}
