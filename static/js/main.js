@@ -35,6 +35,9 @@ class App {
             // Set up event listeners
             this.setupEventListeners();
 
+            // Set selected model from settings
+            this.updateSelectedModel();
+
             // Clear loading overlay
             clearTimeout(loadingTimeout);
             if (loadingOverlay) {
@@ -83,6 +86,13 @@ class App {
         const charCount = e.target.value.length;
         document.getElementById('char-count').textContent = 
             `${charCount} characters`;
+    }
+
+    updateSelectedModel() {
+        const settings = JSON.parse(localStorage.getItem('chatSettings'));
+        if (settings) {
+            document.getElementById('selected-model').textContent = "Selected model: " + settings.model;
+        }
     }
 
     initializeScrollButtons() {
