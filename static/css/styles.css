@@ -433,6 +433,17 @@ p {
     text-align: right;
 }
 
+.selected-model {
+    font-size: 12px;
+    color: #6c757d;
+    margin-left: 35px;
+    position: absolute;
+    margin-top: -92px;
+    z-index: 2000;
+    width: 80%;
+    text-align: left;
+}
+
 button {
     padding: 6px 10px;
     background-color: #007bff;
@@ -702,7 +713,10 @@ button:hover {
     .message-actions {
         display: flex;
     }
-    .form-group textarea {
+    .conversation-actions {
+        opacity: 1 !important;
+    }
+        .form-group textarea {
         width: 93%;
     }
     .chat-container {
@@ -972,6 +986,7 @@ button:hover {
     cursor: pointer;
     color: #666;
     transition: color 0.2s;
+    display: block;
 }
 
 .rename-btn:hover {

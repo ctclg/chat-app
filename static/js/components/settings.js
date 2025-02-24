@@ -232,6 +232,7 @@ export class Settings {
 
     saveSettings(settings) {
         localStorage.setItem('chatSettings', JSON.stringify(settings));
+        document.getElementById('selected-model').textContent = "Selected model: " + settings.model;
     }
 
     validateSettings(settings) {

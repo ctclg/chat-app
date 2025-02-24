@@ -272,7 +272,7 @@ export class Chat {
     
         // Add action buttons to new assistant message
         if (message.role === 'user') {
-            this.addActionButtons(messageElement, message, 'All');
+            this.addActionButtons(messageElement, message, 'CopyOnly');
         } else {
             this.addActionButtons(messageElement, message, 'All');
         }
@@ -426,6 +426,11 @@ export class Chat {
 
     addCopyButtonToCodeBlocks() {
         document.querySelectorAll('.code-wrapper').forEach(wrapper => {
+            // Check if header already exists
+            if (wrapper.querySelector('.code-header')) {
+                return; // Skip this wrapper if it already has a header
+            }
+    
             // Get the language from the code element's class
             const codeElement = wrapper.querySelector('code');
             const languageClass = Array.from(codeElement.classList)
@@ -452,7 +457,7 @@ export class Chat {
             header.appendChild(button); // Put button in header
             wrapper.insertBefore(header, wrapper.firstChild);
         });
-    }
+    }    
     
     deleteMessage(messageElement) {
         // Remove from DOM
