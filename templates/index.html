@@ -112,12 +112,15 @@
             <div class="chat-messages" id="chat-messages"></div>
         </div>
         <div class="chat-input-container">
-            <div class="selected-model" id="selected-model">Model</div>
             <div class="char-count" id="char-count">0 characters</div>
             <form id="chat-form">
-                <textarea id="message-input"
-                    placeholder="Type your message... (Press Shift + Enter for new line, Enter to send)"
-                    rows="3"></textarea>
+                <div class="selected-model" id="selected-model">Model</div>
+                <div class="textarea-container">
+                    <textarea id="message-input"
+                        placeholder="Type your message... (Press Shift + Enter for new line, Enter to send)"
+                        rows="3"></textarea>
+                    <div class="expand-icon">⤢</div>
+                </div>
                 <div>
                     <div id="typing-indicator" class="typing-indicator" style="display: block;">
                         <span></span>
@@ -132,6 +135,48 @@
         </div>
     </div>
     <script type="module" src="/static/js/main.js"></script>
+    <script>
+        const container = document.querySelector('.textarea-container');
+        const icon = document.querySelector('.expand-icon');
+        const textarea = container.querySelector('textarea');
+        const chatForm = document.getElementById('chat-form');
+
+        // Toggle expand/collapse
+        icon.addEventListener('click', () => {
+            toggleExpand();
+        });
+
+        // Handle textarea Enter key
+        textarea.addEventListener('keydown', (e) => {
+            // If Enter is pressed without Shift and the textarea is expanded
+            if (e.key === 'Enter' && !e.shiftKey && textarea.classList.contains('expanded')) {
+                toggleExpand();
+            }
+        });
+
+        // Optional: Allow clicking outside to collapse
+        document.addEventListener('click', (e) => {
+            if (textarea.classList.contains('expanded') &&
+                !textarea.contains(e.target) &&
+                !icon.contains(e.target)) {
+                toggleExpand();
+            }
+        });
+
+        // Helper function to toggle expand/collapse
+        function toggleExpand() {
+            textarea.classList.toggle('expanded');
+            container.classList.toggle('expanded');
+
+            if (textarea.classList.contains('expanded')) {
+                document.body.style.overflow = 'hidden';
+                textarea.focus();
+            } else {
+                document.body.style.overflow = '';
+            }
+        }
+
+    </script>
 </body>
 
 </html>

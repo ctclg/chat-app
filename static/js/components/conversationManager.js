@@ -460,7 +460,7 @@ export class ConversationManager {
                                     style="display: none;">
                             </div>
                             <div class="conversation-date">
-                                ${formatDate(new Date(conv.updated_at))}
+                                ${formatDate(new Date(conv.updated_at))} (${conv.message_count} messages)
                             </div>
                         </div>
                         <div class="conversation-actions">

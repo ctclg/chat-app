@@ -1160,7 +1160,13 @@ async def get_conversations(current_user = Depends(get_current_user)):
         query = """
         SELECT 
          c.id, c.partitionKey, c.user_id, c.name, c.folder, c.created_at, c.updated_at, c.type,
-         c.id as messages, c._rid, c._self, c._etag, c._attachments, c._ts
+         c.id as messages, c._rid, c._self, c._etag, c._attachments, c._ts, ARRAY_LENGTH(
+        ARRAY(
+            SELECT VALUE m 
+            FROM m IN c.messages 
+            WHERE m.role != 'system'
+        )
+    ) as message_count
         FROM c
         WHERE c.type = 'conversation' 
         AND c.partitionKey = @partitionKey 
