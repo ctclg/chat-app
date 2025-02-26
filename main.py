@@ -885,9 +885,9 @@ async def chat(message: str = Form(...), conversation: str = Form(default="[]"))
 
         # This is optional, but I leave it here
         # Loop through the data and modify the 'content' field
-        for message in messages:
+        #for message in messages:
             # Convert 'content' to a list containing a dictionary with 'type' and 'text'
-            message['content'] = [{"type": "text", "text": message['content']}]
+            #message['content'] = [{"type": "text", "text": message['content']}]
 
         for message in messages:
             if 'timestamp' in message:

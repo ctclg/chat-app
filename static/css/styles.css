@@ -377,15 +377,32 @@ p {
 
 .textarea-container textarea.expanded {
     position: fixed;
-    top: 57px;
+    /*top: 57px;
     left: -5px;
     width: calc(100vw - 10px) !important;
-    height: calc(100vh - 70px) !important;
+    height: calc(100vh - 70px) !important;*/
+    top: 270px;
+    left: -5px;
+    width: calc(100vw - 10px) !important;
+    height: calc(100vh - 287px) !important;
     z-index: 10000;
     background: white;
     box-shadow: 0 0 10px rgba(0,0,0,0.3);
     border-radius: 8px;
     padding: 20px;
+}
+
+/* Optional: Add a backdrop when expanded*/
+.textarea-container::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+    display: none;
 }
 
 .textarea-container.expanded::after {
@@ -416,8 +433,8 @@ p {
 
 .expand-icon {
     position: absolute;
-    top: 7px;
-    right: 9px;
+    top: 10px;
+    right: 12px;
     cursor: pointer;
     background: transparent;
     padding: 2px;
@@ -427,8 +444,8 @@ p {
 /* When textarea is expanded, reposition the icon */
 .textarea-container textarea.expanded + .expand-icon {
     position: fixed;
-    top: 64px;
-    right: 9px;
+    top: 280px;
+    right: 10px;
 }
 
 #message-input {
