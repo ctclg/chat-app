@@ -94,7 +94,7 @@ templates = Jinja2Templates(directory="templates")
 
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"),)
-deepseek_client = OpenAI(api_key=os.getenv("DEEPSEEK_API_KEY"), base_url="https://api.deepseek.com")
+deepseek_client = OpenAI(api_key=os.getenv("DEEPSEEK_API_KEY"), base_url=os.getenv("DEEPSEEK_URL"))
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -943,6 +943,7 @@ async def chat(message: str = Form(...), conversation: str = Form(default="[]"))
                 })
 
         if "deepseek" in selectedmodel.lower():
+            logger.info(f"deepseek messages: {messages}")
             messages.pop() #Remove the last item in the list, because it is duplicate for some reason
             logger.info(f"deepseek messages: {messages}")
             response = deepseek_client.chat.completions.create(
