@@ -866,7 +866,7 @@ async def set_password(request: SetPasswordRequest):
     
 # Chat endpoint
 @app.post("/chat")
-async def chat(message: str = Form(...), conversation: str = Form(default="[]")):
+async def chat(message: str = Form(...), conversation: str = Form(default="[]"), model: str = Form(...)):
     try:
         logger.info(f"Received message: {message}")
         
@@ -889,13 +889,14 @@ async def chat(message: str = Form(...), conversation: str = Form(default="[]"))
             # Convert 'content' to a list containing a dictionary with 'type' and 'text'
             #message['content'] = [{"type": "text", "text": message['content']}]
 
+        selectedmodel = model
+        logger.info(f"Selected model: {model}")
+
         for message in messages:
             if 'timestamp' in message:
                 del message['timestamp']
             if 'model' in message:
                 del message['model']
-
-        selectedmodel = DEFAULT_SETTINGS["model"]
 
         # o1-mini only support the value 1 in the temperature parameter, and max_token is max_completion_tokens
         if "o1-mini" in selectedmodel.lower():

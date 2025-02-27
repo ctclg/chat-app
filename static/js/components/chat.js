@@ -102,14 +102,15 @@ export class Chat {
         const systemPrompt = systemPromptSupported === "Yes" ? 
             settings.system_prompt : 
             "System message not supported for the selected model.";
+        const model = settings.model;
+
 
         // Add system message if history is empty
         if (this.history.length === 0) {
             this.addSystemMessage(systemPrompt);
         }
-
         // Add user message
-        this.addUserMessage(message);
+        this.addUserMessage(message, model);
         this.messageInput.value = '';
         this.updateCharCount();
 
@@ -138,8 +139,12 @@ export class Chat {
 
     async sendMessage(message) {
         const formData = new FormData();
+        const settings = JSON.parse(localStorage.getItem('chatSettings'));
+        const model = settings.model;
+
         formData.append('message', message);
         formData.append('conversation', JSON.stringify(this.history));
+        formData.append('model', model);
 
         return fetch('/chat', {
             method: 'POST',
@@ -155,11 +160,12 @@ export class Chat {
         });
     }
 
-    addUserMessage(message) {
+    addUserMessage(message, model) {
         this.addMessage({
             content: message, 
             role: 'user',
-            timestamp: formatDate(new Date())
+            timestamp: formatDate(new Date()),
+            model: model
         });
         this.scrollToBottom();
     }
@@ -382,7 +388,6 @@ export class Chat {
     saveHistory() {
         try {
             localStorage.setItem('chatHistory', JSON.stringify(this.history));
-            //console.log('History saved:', this.history); // For debugging
         } catch (e) {
             console.error('Error saving chat history:', e);
         }
@@ -505,10 +510,7 @@ export class Chat {
             } else {
                 this.addActionButtons(lastMessage, message, 'All');
             }
-        }
-    
-        // For debugging
-        //console.log('Updated history after deletion:', this.history);
+        }    
     }
     
     async regenerateResponse() {
