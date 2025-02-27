@@ -106,13 +106,12 @@ usercontainer = database.get_container_client("users")
 conversationcontainer = database.get_container_client("conversations")
 tokencontainer = database.get_container_client("tokens")
 
-
-DEFAULT_SETTINGS = {
-    "system_prompt": os.getenv("SYSTEM_PROMPT"),
-    "model": os.getenv("MODEL"),
-    "temperature": float(os.getenv("TEMPERATURE")),
-    "max_tokens": int(os.getenv("MAX_TOKENS"))
-}
+# DEFAULT_SETTINGS = {
+#     "system_prompt": os.getenv("SYSTEM_PROMPT"),
+#     "model": os.getenv("MODEL"),
+#     "temperature": float(os.getenv("TEMPERATURE")),
+#     "max_tokens": int(os.getenv("MAX_TOKENS"))
+# }
 
 # JWT Configuration
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -171,11 +170,11 @@ async def send_verification_email(email: str, verification_token: str):
 @app.get("/settings")
 async def get_settings():
     settings = {
-        "model": os.getenv("MODEL", "claude-3-5-sonnet-20241022"),
-        "system_prompt_supported": os.getenv("SYSTEM_PROMPT_SUPPORTED", "Yes"),
-        "system_prompt": os.getenv("SYSTEM_PROMPT", "You are a helpful assistant."),
-        "temperature": float(os.getenv("TEMPERATURE", 0.7)),
-        "max_tokens": int(os.getenv("MAX_TOKENS", 1000))
+        "model": os.getenv("MODEL"),
+        "system_prompt_supported": os.getenv("SYSTEM_PROMPT_SUPPORTED"),
+        "system_prompt": os.getenv("SYSTEM_PROMPT"),
+        "temperature": float(os.getenv("TEMPERATURE")),
+        "max_tokens": int(os.getenv("MAX_TOKENS"))
     }
     return JSONResponse(content=settings)
 
@@ -863,10 +862,17 @@ async def set_password(request: SetPasswordRequest):
             status_code=500,
             detail="An error occurred while setting the password"
         )
-    
+
 # Chat endpoint
 @app.post("/chat")
-async def chat(message: str = Form(...), conversation: str = Form(default="[]"), model: str = Form(...)):
+async def chat(
+    message: str = Form(...), 
+    conversation: str = Form(default="[]"), 
+    model: str = Form(...),
+    temperature: float = Form(...),
+    max_tokens: int = Form(...),
+    system_prompt: str = Form(...)
+):
     try:
         logger.info(f"Received message: {message}")
         
@@ -883,12 +889,6 @@ async def chat(message: str = Form(...), conversation: str = Form(default="[]"),
         logger.info(f"conversation_list: {conversation_list}")
         logger.info(f"messages: {messages}")
 
-        # This is optional, but I leave it here
-        # Loop through the data and modify the 'content' field
-        #for message in messages:
-            # Convert 'content' to a list containing a dictionary with 'type' and 'text'
-            #message['content'] = [{"type": "text", "text": message['content']}]
-
         selectedmodel = model
         logger.info(f"Selected model: {model}")
 
@@ -904,10 +904,10 @@ async def chat(message: str = Form(...), conversation: str = Form(default="[]"),
             messages.pop() #Remove the last item in the list, because it is duplicate for some reason
             logger.info(f"o1-mini messages: {messages}")
             response = openai_client.chat.completions.create(
-                model=DEFAULT_SETTINGS["model"], 
+                model=selectedmodel, 
                 messages=messages,
                 temperature=1,
-                max_completion_tokens=DEFAULT_SETTINGS["max_tokens"]
+                max_completion_tokens=max_tokens
             )
             logger.info(f"o1-mini response: {response}")
             return JSONResponse(content={
@@ -920,9 +920,9 @@ async def chat(message: str = Form(...), conversation: str = Form(default="[]"),
             messages.pop() #Remove the last item in the list, because it is duplicate for some reason
             logger.info(f"o1-preview messages: {messages}")
             response = openai_client.chat.completions.create(
-                model=DEFAULT_SETTINGS["model"], 
+                model=selectedmodel, 
                 messages=messages,
-                max_completion_tokens=DEFAULT_SETTINGS["max_tokens"]
+                max_completion_tokens=max_tokens
             )
             logger.info(f"o1-preview response: {response}")
             return JSONResponse(content={
@@ -933,10 +933,10 @@ async def chat(message: str = Form(...), conversation: str = Form(default="[]"),
             messages.pop() #Remove the last item in the list, because it is duplicate for some reason
             logger.info(f"gpt messages: {messages}")
             response = openai_client.chat.completions.create(
-                model=DEFAULT_SETTINGS["model"], 
+                model=selectedmodel, 
                 messages=messages,
-                temperature=DEFAULT_SETTINGS["temperature"],
-                max_tokens=DEFAULT_SETTINGS["max_tokens"]
+                temperature=temperature,
+                max_tokens=max_tokens
             )
             logger.info(f"gpt response: {response}")
             return JSONResponse(content={
@@ -948,10 +948,10 @@ async def chat(message: str = Form(...), conversation: str = Form(default="[]"),
             messages.pop() #Remove the last item in the list, because it is duplicate for some reason
             logger.info(f"deepseek messages: {messages}")
             response = deepseek_client.chat.completions.create(
-                model=DEFAULT_SETTINGS["model"], 
+                model=selectedmodel, 
                 messages=messages,
-                temperature=DEFAULT_SETTINGS["temperature"],
-                max_tokens=DEFAULT_SETTINGS["max_tokens"]
+                temperature=temperature,
+                max_tokens=max_tokens
             )
             logger.info(f"deepseek response: {response}")
             return JSONResponse(content={
@@ -963,11 +963,11 @@ async def chat(message: str = Form(...), conversation: str = Form(default="[]"),
             messages.pop() #Remove the last item in the list, because it is duplicate for some reason
             logger.info(f"claude messages: {messages}")
             response = anthropic_client.messages.create(
-                model=DEFAULT_SETTINGS["model"], 
+                model=selectedmodel, 
                 messages=messages, 
-                system=DEFAULT_SETTINGS["system_prompt"],
-                temperature=DEFAULT_SETTINGS["temperature"],
-                max_tokens=DEFAULT_SETTINGS["max_tokens"]
+                system=system_prompt,
+                temperature=temperature,
+                max_tokens=max_tokens
             )
             logger.info(f"claud response: {response}")
             return JSONResponse(content={
@@ -978,13 +978,6 @@ async def chat(message: str = Form(...), conversation: str = Form(default="[]"),
         logger.error(f"Error calling LLM API: {str(e)}")
         logger.exception("Full exception details:")
         return JSONResponse(content={"error": str(e)}, status_code=500)
-
-# Update chat settings
-@app.post("/update-settings")
-async def update_settings(settings: ChatSettings):
-    global DEFAULT_SETTINGS
-    DEFAULT_SETTINGS = settings.dict()
-    return JSONResponse(content={"message": "Settings updated successfully"})
 
 # Get available models
 @app.get("/api/models")
@@ -1339,17 +1332,6 @@ async def debug_test():
     logger.info("Debug test endpoint hit")
     logger.info("="*50)
     return {"status": "ok", "message": "Debug endpoint working"}
-
-# # Generate verification token
-# def generate_verification_token():
-#     return secrets.token_urlsafe(16)
-
-# # Set up logging
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-# )
-# logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     import uvicorn

@@ -110,7 +110,7 @@ export class Chat {
             this.addSystemMessage(systemPrompt);
         }
         // Add user message
-        this.addUserMessage(message, model);
+        this.addUserMessage(message);
         this.messageInput.value = '';
         this.updateCharCount();
 
@@ -140,11 +140,13 @@ export class Chat {
     async sendMessage(message) {
         const formData = new FormData();
         const settings = JSON.parse(localStorage.getItem('chatSettings'));
-        const model = settings.model;
 
         formData.append('message', message);
         formData.append('conversation', JSON.stringify(this.history));
-        formData.append('model', model);
+        formData.append('model', settings.model);
+        formData.append('temperature', settings.temperature);
+        formData.append('max_tokens', settings.max_tokens);
+        formData.append('system_prompt', settings.system_prompt);
 
         return fetch('/chat', {
             method: 'POST',
@@ -160,12 +162,11 @@ export class Chat {
         });
     }
 
-    addUserMessage(message, model) {
+    addUserMessage(message) {
         this.addMessage({
             content: message, 
             role: 'user',
-            timestamp: formatDate(new Date()),
-            model: model
+            timestamp: formatDate(new Date())
         });
         this.scrollToBottom();
     }
