@@ -76,7 +76,6 @@ export class Settings {
             if (!response.ok) {
                 throw new Error('Failed to fetch models');
             }
-
             const models = await response.json();
             this.modelSelect.innerHTML = '';
 
@@ -167,7 +166,6 @@ export class Settings {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(settings)
             });
-
             if (response.ok) {
                 this.saveSettings(settings);
                 this.modal.style.display = "none";
