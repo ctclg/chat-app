@@ -161,18 +161,21 @@ export class Settings {
         };
 
         try {
-            const response = await fetch('/update-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(settings)
-            });
-            if (response.ok) {
-                this.saveSettings(settings);
-                this.modal.style.display = "none";
-                document.getElementById('message-input').focus();
-            } else {
-                throw new Error('Failed to update settings');
-            }
+            this.saveSettings(settings);
+            this.modal.style.display = "none";
+            document.getElementById('message-input').focus();
+            // const response = await fetch('/update-settings', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify(settings)
+            // });
+            // if (response.ok) {
+            //     this.saveSettings(settings);
+            //     this.modal.style.display = "none";
+            //     document.getElementById('message-input').focus();
+            // } else {
+            //     throw new Error('Failed to update settings');
+            // }
         } catch (error) {
             console.error('Error updating settings:', error);
             alert('Error updating settings');
@@ -189,22 +192,29 @@ export class Settings {
             // First, fetch default settings from server
             const defaultSettings = await this.fetchDefaultSettings();
             
-            const response = await fetch('/update-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(defaultSettings)
-            });
-
-            if (response.ok) {
-                this.saveSettings(defaultSettings);
-                this.applySettings(defaultSettings);
-                if (showConfirmation) {
-                    this.modal.style.display = "none";
-                    document.getElementById('message-input').focus();
-                }
-            } else {
-                throw new Error('Failed to restore default settings');
+            this.saveSettings(defaultSettings);
+            this.applySettings(defaultSettings);
+            if (showConfirmation) {
+              this.modal.style.display = "none";
+              document.getElementById('message-input').focus();
             }
+
+            // const response = await fetch('/update-settings', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify(defaultSettings)
+            // });
+
+            // if (response.ok) {
+            //     this.saveSettings(defaultSettings);
+            //     this.applySettings(defaultSettings);
+            //     if (showConfirmation) {
+            //         this.modal.style.display = "none";
+            //         document.getElementById('message-input').focus();
+            //     }
+            // } else {
+            //     throw new Error('Failed to restore default settings');
+            // }
         } catch (error) {
             console.error('Error restoring defaults:', error);
             if (showConfirmation) {
