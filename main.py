@@ -106,13 +106,6 @@ usercontainer = database.get_container_client("users")
 conversationcontainer = database.get_container_client("conversations")
 tokencontainer = database.get_container_client("tokens")
 
-# DEFAULT_SETTINGS = {
-#     "system_prompt": os.getenv("SYSTEM_PROMPT"),
-#     "model": os.getenv("MODEL"),
-#     "temperature": float(os.getenv("TEMPERATURE")),
-#     "max_tokens": int(os.getenv("MAX_TOKENS"))
-# }
-
 # JWT Configuration
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
