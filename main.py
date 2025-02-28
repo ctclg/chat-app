@@ -11,6 +11,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, RedirectResponse, FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+from google import genai
+from google.genai import types
 from jose import JWTError, jwt
 from logging.handlers import RotatingFileHandler
 from openai import OpenAI
@@ -95,6 +97,7 @@ templates = Jinja2Templates(directory="templates")
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"),)
 deepseek_client = OpenAI(api_key=os.getenv("DEEPSEEK_API_KEY"), base_url=os.getenv("DEEPSEEK_URL"))
+google_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -890,6 +893,42 @@ async def chat(
                 del message['timestamp']
             if 'model' in message:
                 del message['model']
+
+
+        if "gemini" in selectedmodel.lower():
+            try:
+                # Format everything as a single prompt
+                prompt = ""
+                
+                # Add system prompt if provided
+                if system_prompt and system_prompt.strip():
+                    prompt += f"System: {system_prompt}\n\n"
+                
+                # Add conversation history
+                for msg in messages:
+                    role = "User" if msg["role"] == "user" else "Assistant"
+                    prompt += f"{role}: {msg['content']}\n\n"
+                
+                # Add the current query
+                prompt += f"User: {message}\n\nAssistant:"
+                
+                logger.info(f"Gemini prompt: {prompt}")
+                
+                # Generate content with minimal parameters
+                response = google_client.models.generate_content(
+                    model=selectedmodel,
+                    contents=prompt
+                )
+                
+                logger.info(f"Gemini response: {response}")
+                
+                return JSONResponse(content={
+                    "response": response.text
+                })
+            except Exception as e:
+                logger.error(f"Error with Gemini API: {str(e)}")
+                logger.exception("Full Gemini exception details:")
+                return JSONResponse(content={"error": str(e)}, status_code=500)
 
         # o1-mini only support the value 1 in the temperature parameter, and max_token is max_completion_tokens
         if "o1-mini" in selectedmodel.lower():

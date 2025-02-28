@@ -68,14 +68,20 @@ export class Chat {
                 e.preventDefault();
                 this.handleSubmit();
             }
-            this.messageInput.focus();
+            const hasTouch = this.isTouchDevice();
+            if (!hasTouch) {
+                this.messageInput.focus();
+            }        
         });
 
         // Add this code for form submission when clicking Send
         document.getElementById('chat-form').addEventListener('submit', (e) => {
             e.preventDefault();
             this.handleSubmit();
-            this.messageInput.focus();
+            const hasTouch = this.isTouchDevice();
+            if (!hasTouch) {
+                this.messageInput.focus();
+            }        
         });
 
         this.messageInput.addEventListener('input', () => {
@@ -94,6 +100,7 @@ export class Chat {
     }
 
     async handleSubmit() {
+        const hasTouch = this.isTouchDevice();
         const message = this.messageInput.value.trim();
         if (!message) return;
 
@@ -114,6 +121,10 @@ export class Chat {
         this.messageInput.value = '';
         this.updateCharCount();
 
+        if (hasTouch) {
+            document.getElementById('clear-chat').focus();
+        }        
+
         // Show typing indicator
         this.showTypingIndicator();
 
@@ -125,6 +136,7 @@ export class Chat {
                 const data = await response.json();
                 this.addBotMessage(data.response, settings.model);
                 this.markConversationAsTouched();
+                //this.messageInput.focus();
             } else {
                 const errorData = await response.text();
                 console.error('Server error:', errorData);
@@ -572,4 +584,13 @@ export class Chat {
     scrollToBottom() {
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
     }
+
+    isTouchDevice() {
+        return (
+            ('ontouchstart' in window) ||
+            (navigator.maxTouchPoints > 0) ||
+            (navigator.msMaxTouchPoints > 0)
+        );
+    }
 }
+
