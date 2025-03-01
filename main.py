@@ -5,12 +5,12 @@ from azure.cosmos import CosmosClient, PartitionKey
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Form, HTTPException, Depends, status, APIRouter, BackgroundTasks, APIRouter, Query
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, RedirectResponse, FileResponse, HTMLResponse
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, RedirectResponse, FileResponse, HTMLResponse
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from google import genai
 from google.genai import types
 from jose import JWTError, jwt
@@ -893,35 +893,38 @@ async def chat(
                 del message['timestamp']
             if 'model' in message:
                 del message['model']
-
+        logger.info(f"Final message: {messages}")
 
         if "gemini" in selectedmodel.lower():
+            logger.info(f"gemini messages: {messages}")
             try:
                 # Format everything as a single prompt
                 prompt = ""
-                
+
                 # Add system prompt if provided
                 if system_prompt and system_prompt.strip():
                     prompt += f"System: {system_prompt}\n\n"
-                
+
                 # Add conversation history
-                for msg in messages:
+                # Iterate to the second to last message, i.e. skip the newest user message
+                for i in range(len(messages) - 1):
+                    msg = messages[i]
                     role = "User" if msg["role"] == "user" else "Assistant"
                     prompt += f"{role}: {msg['content']}\n\n"
-                
+
                 # Add the current query
                 prompt += f"User: {message}\n\nAssistant:"
-                
+
                 logger.info(f"Gemini prompt: {prompt}")
-                
+
                 # Generate content with minimal parameters
                 response = google_client.models.generate_content(
                     model=selectedmodel,
                     contents=prompt
                 )
-                
+
                 logger.info(f"Gemini response: {response}")
-                
+
                 return JSONResponse(content={
                     "response": response.text
                 })
@@ -929,7 +932,7 @@ async def chat(
                 logger.error(f"Error with Gemini API: {str(e)}")
                 logger.exception("Full Gemini exception details:")
                 return JSONResponse(content={"error": str(e)}, status_code=500)
-
+            
         # o1-mini only support the value 1 in the temperature parameter, and max_token is max_completion_tokens
         if "o1-mini" in selectedmodel.lower():
             messages.pop(0) #Remove the first item in the list, as o1 does not accept the system role
@@ -962,7 +965,7 @@ async def chat(
                 })
 
         if "gpt" in selectedmodel.lower():
-            messages.pop() #Remove the last item in the list, because it is duplicate for some reason
+            messages.pop() #Remove the last item in the list, because it is duplicated
             logger.info(f"gpt messages: {messages}")
             response = openai_client.chat.completions.create(
                 model=selectedmodel, 
@@ -977,7 +980,7 @@ async def chat(
 
         if "deepseek" in selectedmodel.lower():
             logger.info(f"deepseek messages: {messages}")
-            messages.pop() #Remove the last item in the list, because it is duplicate for some reason
+            messages.pop() #Remove the last item in the list, because it is duplicated
             logger.info(f"deepseek messages: {messages}")
             response = deepseek_client.chat.completions.create(
                 model=selectedmodel, 
@@ -992,7 +995,7 @@ async def chat(
 
         if "claude" in selectedmodel.lower():
             messages.pop(0) #Remove the first item in the list, as claude does not accept the system role
-            messages.pop() #Remove the last item in the list, because it is duplicate for some reason
+            messages.pop() #Remove the last item in the list, because it is duplicated
             logger.info(f"claude messages: {messages}")
             response = anthropic_client.messages.create(
                 model=selectedmodel, 

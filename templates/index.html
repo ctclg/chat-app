@@ -110,9 +110,16 @@
             </div>-->
         </div>
         <div class="chat-container">
+            <!-- Add the copy button as a sibling of chat-messages instead of a child -->
+            <div class="copy-conversation-button" id="copy-conversation">
+                <i class="fas fa-copy"></i>
+            </div>
             <div class="chat-messages" id="chat-messages"></div>
         </div>
-        <div class="chat-input-container">
+        <div class="chat-input-container" id="chat-input-container">
+            <div class="input-minimize-tab" id="input-minimize-tab">
+                <i class="fas fa-chevron-down" id="toggle-input-container"></i>
+            </div>        
             <div class="char-count" id="char-count">0 characters</div>
             <form id="chat-form">
                 <div class="selected-model" id="selected-model">Model</div>
@@ -176,6 +183,251 @@
                 document.body.style.overflow = '';
             }
         }
+
+        // Add this new code for the minimize/maximize functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputContainer = document.getElementById('chat-input-container');
+            const toggleTab = document.getElementById('input-minimize-tab');
+            const toggleIcon = document.getElementById('toggle-input-container');
+            
+            if (toggleTab && inputContainer) {
+                toggleTab.addEventListener('click', function() {
+                    inputContainer.classList.toggle('minimized');
+                    
+                    // Change the icon based on state
+                    if (inputContainer.classList.contains('minimized')) {
+                        toggleIcon.classList.remove('fa-chevron-down');
+                        toggleIcon.classList.add('fa-chevron-up');
+                    } else {
+                        toggleIcon.classList.remove('fa-chevron-up');
+                        toggleIcon.classList.add('fa-chevron-down');
+                    }
+                    
+                    // Adjust the chat messages container height
+                    adjustChatMessagesHeight();
+                });
+            }
+            
+            function adjustChatMessagesHeight() {
+                const chatMessages = document.querySelector('.chat-messages');
+                const chatInputContainer = document.querySelector('.chat-input-container');
+                if (chatMessages) {
+                    if (inputContainer.classList.contains('minimized')) {
+                        // When minimized, expand the chat messages area
+                        if (window.matchMedia('(hover: none)').matches) {
+                            chatMessages.style.height = 'calc(100vh - 172px)';
+                            chatInputContainer.style.height = '0px';
+                        } else {
+                            chatMessages.style.height = 'calc(100vh - 92px)';
+                            chatInputContainer.style.height = '0px';
+                        }
+                    } else {
+                        // When restored, set back to original height
+                        if (window.matchMedia('(hover: none)').matches) {
+                            chatInputContainer.style.height = '110px';
+                            chatMessages.style.height = 'calc(100vh - 285px)';
+                        } else {
+                            chatInputContainer.style.height = '110px';
+                            chatMessages.style.height = 'calc(100vh - 200px)';
+                            textarea.focus();
+                        }
+                    }
+                }
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initial button setup
+            setupCopyButton();
+            
+            // This function can be called whenever you load a new conversation
+            function setupCopyButton() {
+                let copyButton = document.getElementById('copy-conversation');
+                const chatMessages = document.getElementById('chat-messages');
+                
+                // Check if chat is empty
+                const isEmpty = !chatMessages || chatMessages.children.length === 0;
+                
+                // If the button doesn't exist, create it
+                if (!copyButton) {
+                    const chatContainer = document.querySelector('.chat-container');
+                    if (chatContainer) {
+                        copyButton = document.createElement('div');
+                        copyButton.id = 'copy-conversation';
+                        copyButton.className = 'copy-conversation-button';
+                        copyButton.innerHTML = '<i class="fas fa-copy"></i>';
+                        
+                        // Insert at the beginning of chat container
+                        chatContainer.insertBefore(copyButton, chatContainer.firstChild);
+                    }
+                }
+                
+                // Show or hide the button based on whether chat is empty
+                if (copyButton) {
+                    if (isEmpty) {
+                        copyButton.style.display = 'none';
+                    } else {
+                        copyButton.style.display = 'flex';
+                    }
+                    
+                    // Remove any existing listeners to prevent duplicates
+                    copyButton.removeEventListener('click', handleCopyClick);
+                    // Add the click handler
+                    copyButton.addEventListener('click', handleCopyClick);
+                }
+            }
+        
+            // Extract the copy functionality to a named function
+            function handleCopyClick() {
+                try {
+                    // Try different possible localStorage keys
+                    let conversationData;
+                    let conversationTitle = "Conversation";
+                    
+                    // Check for conversation data in different possible formats
+                    if (localStorage.getItem("currentConversation")) {
+                        conversationData = localStorage.getItem("chatHistory");
+                        conversationTitle = localStorage.getItem("currentConversation");
+                    } else if (localStorage.getItem("conversation")) {
+                        conversationData = localStorage.getItem("conversation");
+                    } else {
+                        // Look for any key that might contain conversation data
+                        for (let i = 0; i < localStorage.length; i++) {
+                            const key = localStorage.key(i);
+                            const value = localStorage.getItem(key);
+                            
+                            // Check if the value looks like a conversation (contains messages with roles)
+                            if (value && value.includes('"role"') && value.includes('"content"')) {
+                                conversationData = value;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (!conversationData) {
+                        // If no conversation data found, try to get it from the DOM
+                        const messages = document.querySelectorAll('.message');
+                        if (messages.length > 0) {
+                            let extractedConversation = [];
+                            
+                            messages.forEach(msg => {
+                                const isUser = msg.classList.contains('user-message');
+                                const isAssistant = msg.classList.contains('assistant-message');
+                                const isSystem = msg.classList.contains('system-message');
+                                
+                                let role = 'unknown';
+                                if (isUser) role = 'user';
+                                if (isAssistant) role = 'assistant';
+                                if (isSystem) role = 'system';
+                                
+                                const content = msg.querySelector('.message-content').innerText;
+                                
+                                extractedConversation.push({
+                                    role: role,
+                                    content: content
+                                });
+                            });
+                            
+                            conversationData = JSON.stringify(extractedConversation);
+                        } else {
+                            throw new Error("No conversation data found");
+                        }
+                    }
+                    
+                    // Parse the conversation data
+                    const messages = JSON.parse(conversationData);
+                    
+                    // Format the conversation for copying
+                    let formattedConversation = `# ${conversationTitle}\n\n`;
+                    
+                    messages.forEach(msg => {
+                        if (msg && msg.role) {
+                            const role = msg.role.charAt(0).toUpperCase() + msg.role.slice(1);
+                            formattedConversation += `## ${role}${msg.model ? ': ' + msg.model : ''}\n\n`;
+                            formattedConversation += `${msg.content || ''}\n\n`;
+                        }
+                    });
+                    
+                    // Copy to clipboard
+                    navigator.clipboard.writeText(formattedConversation)
+                        .then(() => {
+                            // Visual feedback
+                            const copyButton = document.getElementById('copy-conversation');
+                            if (copyButton) {
+                                copyButton.classList.add('copied');
+                                
+                                // Remove the 'copied' class after 2 seconds
+                                setTimeout(() => {
+                                    copyButton.classList.remove('copied');
+                                }, 2000);
+                            }
+                            
+                            console.log("Conversation copied successfully");
+                        })
+                        .catch(err => {
+                            console.error('Failed to copy conversation: ', err);
+                            alert('Failed to copy conversation to clipboard');
+                        });
+                } catch (error) {
+                    console.error('Error processing conversation data: ', error);
+                    alert('Error processing conversation data: ' + error.message);
+                    
+                    // Fallback: Try to copy what's visible on screen
+                    try {
+                        const chatMessages = document.getElementById('chat-messages');
+                        if (chatMessages) {
+                            navigator.clipboard.writeText(chatMessages.innerText)
+                                .then(() => {
+                                    alert('Copied visible conversation text as fallback');
+                                })
+                                .catch(err => {
+                                    console.error('Fallback copy failed: ', err);
+                                });
+                        }
+                    } catch (fallbackError) {
+                        console.error('Fallback copy failed: ', fallbackError);
+                    }
+                }
+            }
+            
+            // Add event listeners for conversation loading events
+            const loadConversationsButton = document.getElementById('load-conversations');
+            if (loadConversationsButton) {
+                loadConversationsButton.addEventListener('click', function() {
+                    // After loading conversation, ensure copy button exists
+                    setTimeout(setupCopyButton, 300);
+                });
+            }
+            
+            // Also handle new conversation creation
+            const clearChatButton = document.getElementById('clear-chat');
+            if (clearChatButton) {
+                clearChatButton.addEventListener('click', function() {
+                    setTimeout(setupCopyButton, 300);
+                });
+            }
+            
+            // Monitor for DOM changes in the chat container
+            const chatContainer = document.querySelector('.chat-container');
+            if (chatContainer && window.MutationObserver) {
+                const observer = new MutationObserver(function(mutations) {
+                    // Check if messages were added or removed
+                    let needsUpdate = false;
+                    
+                    mutations.forEach(mutation => {
+                        if (mutation.type === 'childList') {
+                            needsUpdate = true;
+                        }
+                    });
+                    
+                    if (needsUpdate) {
+                        setupCopyButton();
+                    }
+                });
+                
+                observer.observe(chatContainer, { childList: true, subtree: true });
+            }
+        });
     </script>
 </body>
 
