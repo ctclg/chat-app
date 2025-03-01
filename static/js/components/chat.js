@@ -292,7 +292,7 @@ export class Chat {
         // Add action buttons to new assistant message
         if (message.role === 'user') {
             this.addActionButtons(messageElement, message, 'CopyOnly');
-        } else {
+        } else if (message.role === 'assistant') {
             this.addActionButtons(messageElement, message, 'All');
         }
 
