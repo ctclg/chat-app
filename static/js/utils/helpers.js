@@ -44,3 +44,22 @@ export const removeLoadingOverlay = (overlay) => {
         overlay.parentElement.removeChild(overlay);
     }
 };
+
+export function renderHighlightedText(text) {
+    if (!text) return '';
+    
+    // First escape the entire text to prevent HTML injection
+    let safeText = escapeHTML(text);
+    
+    // Then replace our special markers with highlight spans
+    // The markers themselves should be escaped to match what's in the escaped text
+    const escapedStartMarker = escapeHTML('%%%HIGHLIGHT%%%');
+    const escapedEndMarker = escapeHTML('%%%ENDHIGHLIGHT%%%');
+    
+    // Create a regex that will match the escaped markers
+    const markerRegex = new RegExp(escapedStartMarker + '(.*?)' + escapedEndMarker, 'g');
+    
+    // Replace with highlight spans
+    return safeText.replace(markerRegex, '<span class="highlight">$1</span>');
+}
+
