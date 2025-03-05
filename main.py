@@ -1,10 +1,10 @@
 #main.py
 
-import json, logging, openai, os, secrets, uuid, anthropic, asyncio
+import json, logging, openai, os, re, secrets, uuid, anthropic, asyncio
 from azure.cosmos import CosmosClient, PartitionKey
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request, Form, HTTPException, Depends, status, APIRouter, BackgroundTasks, APIRouter, Query
+from fastapi import FastAPI, Request, Form, HTTPException, Depends, status, APIRouter, BackgroundTasks, APIRouter, Query, Body
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, FileResponse, HTMLResponse
@@ -18,7 +18,7 @@ from logging.handlers import RotatingFileHandler
 from openai import OpenAI
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 
 # Create logs directory if it doesn't exist
 if not os.path.exists('logs'):
@@ -1249,6 +1249,137 @@ async def get_folders(current_user = Depends(get_current_user)):
             status_code=500,
             detail="Failed to retrieve folders"
         )
+
+@app.post("/api/conversations/search")
+async def search_conversations(
+    request: dict,
+    current_user = Depends(get_current_user)
+):
+    try:
+        search_term = request.get("query", "").strip().lower()
+        
+        if not search_term:
+            raise HTTPException(
+                status_code=400,
+                detail="Search query cannot be empty"
+            )
+            
+        # Get all conversations for this user
+        query = """
+        SELECT c.id, c.name, c.folder, c.updated_at, c.messages, c.partitionKey
+        FROM c
+        WHERE c.type = 'conversation'
+        AND c.partitionKey = @partitionKey
+        """
+        
+        parameters = [
+            {"name": "@partitionKey", "value": f'CHAT#{current_user["id"]}'}
+        ]
+        
+        conversations = list(conversationcontainer.query_items(
+            query=query,
+            parameters=parameters,
+            enable_cross_partition_query=True
+        ))
+        
+        # Process and filter results
+        results = []
+        for conv in conversations:
+            matched = False
+            matched_content = None
+            highlighted_name = None
+            highlighted_folder = None
+            
+            # Check name match
+            conv_name = conv.get("name", "")
+            if search_term in conv_name.lower():
+                matched = True
+                highlighted_name = highlight_text(conv_name, search_term)
+            
+            # Check folder match
+            conv_folder = conv.get("folder", "")
+            if search_term in conv_folder.lower():
+                matched = True
+                highlighted_folder = highlight_text(conv_folder, search_term)
+            
+            # Check message content match
+            if not matched:
+                for message in conv.get("messages", []):
+                    content = message.get("content", "")
+                    if search_term in content.lower():
+                        matched = True
+                        matched_content = extract_match_context(content, search_term)
+                        break
+            
+            if matched:
+                # Count messages (excluding system message)
+                message_count = sum(1 for msg in conv.get("messages", []) 
+                                  if msg.get("role") != "system")
+                
+                result = {
+                    "id": conv.get("id"),
+                    "name": conv.get("name"),
+                    "folder": conv.get("folder"),
+                    "updated_at": conv.get("updated_at"),
+                    "message_count": message_count
+                }
+                
+                # Add highlighted versions if available
+                if highlighted_name:
+                    result["highlightedName"] = highlighted_name
+                if highlighted_folder:
+                    result["highlightedFolder"] = highlighted_folder
+                if matched_content:
+                    result["matchedContent"] = highlight_text(matched_content, search_term)
+                    
+                results.append(result)
+        
+        # Sort results by updated_at (most recent first)
+        results.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
+        
+        # Return top 10 results
+        return results[:10]
+
+    except Exception as e:
+        logger.error(f"Error searching conversations: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to search conversations"
+        )
+
+def highlight_text(text: str, search_term: str) -> str:
+    """Mark occurrences of search_term for highlighting"""
+    if not text or not search_term:
+        return text
+        
+    # Use case-insensitive replacement
+    # Use a marker that's unlikely to appear in normal text
+    pattern = re.compile(re.escape(search_term), re.IGNORECASE)
+    highlighted = pattern.sub(r"%%%HIGHLIGHT%%%" + r"\g<0>" + r"%%%ENDHIGHLIGHT%%%", text)
+    return highlighted
+
+def extract_match_context(content: str, search_term: str, context_length: int = 80) -> str:
+    """Extract a snippet of text around the search match for context"""
+    # Make the search case-insensitive
+    content_lower = content.lower()
+    search_pos = content_lower.find(search_term.lower())
+    if search_pos == -1:
+        return None
+        
+    # Calculate start and end positions for the context
+    start = max(0, search_pos - context_length)
+    end = min(len(content), search_pos + len(search_term) + context_length)
+    
+    # Extract the context
+    context = content[start:end]
+    
+    # Add ellipsis if we're not at the start/end of the content
+    if start > 0:
+        context = "..." + context
+    if end < len(content):
+        context = context + "..."
+        
+    return context
 
 # Check if conversation exists
 @app.post("/api/conversations/check")

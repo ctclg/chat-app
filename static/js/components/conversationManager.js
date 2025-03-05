@@ -1,7 +1,7 @@
 // components/conversationManager.js
 import { API_ENDPOINTS } from '../utils/constants.js';
 import { ConversationApi } from '../api/conversationApi.js';
-import { showLoadingOverlay, removeLoadingOverlay, escapeHTML, formatDate } from '../utils/helpers.js';
+import { showLoadingOverlay, removeLoadingOverlay, escapeHTML, formatDate, renderHighlightedText } from '../utils/helpers.js';
 
 export class ConversationManager {
     constructor(chatInstance, app) {
@@ -156,6 +156,7 @@ export class ConversationManager {
         };
     }
 
+/*    
     async showLoadDialog(conversations) {
         const conversationsByFolder = this.organizeConversationsByFolder(conversations);
 
@@ -184,47 +185,344 @@ export class ConversationManager {
         document.body.appendChild(dialog);
         this.setupLoadDialogListeners(dialog);
     }
+*/
 
+    async showLoadDialog(conversations) {
+        const dialog = document.createElement('div');
+        dialog.className = 'conversation-selector';
+        dialog.innerHTML = `
+            <div class="conversation-selector-content">
+                <span class="close">&times;</span>
+                <h3>Open Conversation</h3>
+                
+                <!-- Top navigation tabs -->
+                <div class="dialog-tabs">
+                    <div class="tab-item active" data-page="browse">
+                        <i class="fas fa-folder"></i> Browse
+                    </div>
+                    <div class="tab-item" data-page="recent">
+                        <i class="fas fa-clock"></i> Recent
+                    </div>
+                    <div class="tab-item" data-page="search">
+                        <i class="fas fa-search"></i> Search
+                    </div>
+                </div>
+                
+                <!-- Main content area -->
+                <div class="dialog-content">
+                    <!-- Browse page -->
+                    <div class="dialog-page" id="browse-page">
+                        <div class="page-header">
+                            <label for="folder-filter">Select Folder:</label>
+                            <div class="folder-select-container">
+                                <select id="folder-filter">
+                                    <option value="">All Folders</option>
+                                    ${Object.keys(this.organizeConversationsByFolder(conversations)).map(folder => 
+                                        `<option value="${escapeHTML(folder)}">${escapeHTML(folder)}</option>`
+                                    ).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="conversation-list">
+                            ${this.generateConversationList(this.organizeConversationsByFolder(conversations))}
+                        </div>
+                    </div>
+                    
+                    <!-- Recent page -->
+                    <div class="dialog-page" id="recent-page" style="display: none;">
+                        <div class="page-header">
+                        </div>
+                        <div class="conversation-list" id="recent-conversations-list">
+                            ${this.generateRecentConversationsList(conversations)}
+                        </div>
+                    </div>
+                    
+                    <!-- Search page -->
+                    <div class="dialog-page" id="search-page" style="display: none;">
+                        <div class="page-header">
+                            <div class="search-container">
+                                <input type="text" id="conversation-search" 
+                                    placeholder="Search conversations by name, folder or content...">
+                                <button id="search-button">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="conversation-list" id="search-results-list">
+                            <div class="search-placeholder">
+                                Enter search terms above to find conversations
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dialog-footer">
+                    <button class="close-selector">Cancel</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(dialog);
+        this.setupLoadDialogListeners(dialog);
+        this.setupNavigationListeners(dialog);
+    }
+
+    setupNavigationListeners(dialog) {
+        // Handle navigation between tabs
+        const tabItems = dialog.querySelectorAll('.tab-item');
+        const pages = dialog.querySelectorAll('.dialog-page');
+        
+        tabItems.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Update active tab
+                tabItems.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Show the selected page, hide others
+                const targetPage = tab.dataset.page;
+                pages.forEach(page => {
+                    page.style.display = page.id === `${targetPage}-page` ? 'block' : 'none';
+                });
+                
+                // Special handling for search page
+                if (targetPage === 'search') {
+                    dialog.querySelector('#conversation-search').focus();
+                }
+            });
+        });
+        
+        // Set up search functionality
+        const searchInput = dialog.querySelector('#conversation-search');
+        const searchButton = dialog.querySelector('#search-button');
+        
+        const performSearch = async () => {
+            const query = searchInput.value.trim();
+            if (!query) return;
+            
+            const searchResultsList = dialog.querySelector('#search-results-list');
+            searchResultsList.innerHTML = '<div class="loading-indicator">Searching...</div>';
+            
+            try {
+                const results = await this.searchConversations(query);
+                if (results.length === 0) {
+                    searchResultsList.innerHTML = '<div class="no-results">No conversations found matching your search</div>';
+                } else {
+                    searchResultsList.innerHTML = this.generateSearchResultsList(results);
+                    this.setupConversationActions(dialog);
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                searchResultsList.innerHTML = '<div class="error-message">Error performing search</div>';
+            }
+        };
+        
+        searchButton.addEventListener('click', performSearch);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+    }
+
+    generateSearchResultsList(results) {
+        if (results.length === 0) {
+            return '<div class="no-results">No conversations found matching your search</div>';
+        }
+        
+        return results.map(conv => {
+            // Create a clean conversation object without the highlighted fields
+            // to avoid any issues when parsing the data-conversation attribute
+            const conversationData = {
+                id: conv.id,
+                name: conv.name,
+                folder: conv.folder,
+                updated_at: conv.updated_at,
+                message_count: conv.message_count
+            };
+            
+            // Serialize to JSON and ensure it's properly escaped for HTML attribute
+            const safeJsonData = JSON.stringify(conversationData)
+                .replace(/&/g, '&amp;')
+                .replace(/'/g, '&apos;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            
+            // Use highlighted versions if available, otherwise use regular versions
+            const nameDisplay = conv.highlightedName ? 
+                renderHighlightedText(conv.highlightedName) : 
+                escapeHTML(conv.name);
+                
+            const folderDisplay = conv.highlightedFolder ? 
+                renderHighlightedText(conv.highlightedFolder) : 
+                escapeHTML(conv.folder);
+                
+            const contentDisplay = conv.matchedContent ? 
+                renderHighlightedText(conv.matchedContent) : 
+                '';
+            
+            return `
+                <div class="conversation-item" data-conversation="${safeJsonData}">
+                    <div class="conversation-content">
+                        <div class="conversation-name" data-id="${conv.id}">
+                            <span class="name-text">${nameDisplay}</span>
+                            <input type="text" class="name-edit" 
+                                value="${escapeHTML(conv.name)}" 
+                                style="display: none;">
+                        </div>
+                        <div class="conversation-info">
+                            <span class="conversation-date">
+                                ${formatDate(new Date(conv.updated_at))} (${conv.message_count} messages)
+                            </span>
+                            <span class="conversation-folder">${folderDisplay}</span>
+                        </div>
+                        ${contentDisplay ? `
+                        <div class="match-preview">
+                            <div class="match-label">&nbsp;</div>
+                            <div class="match-text">${contentDisplay}</div>
+                        </div>` : ''}
+                    </div>
+                    <div class="conversation-actions">
+                        <button class="rename-btn" title="Rename">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-btn" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }    
+         
+    async searchConversations(query) {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                throw new Error('No authentication token found');
+            }
+    
+            const response = await fetch(`${API_ENDPOINTS.CONVERSATIONS}/search`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ query })
+            });
+    
+            if (!response.ok) {
+                throw new Error('Failed to search conversations');
+            }
+    
+            return await response.json();
+        } catch (error) {
+            console.error('Error searching conversations:', error);
+            throw error;
+        }
+    }
+    
     setupLoadDialogListeners(dialog) {
         const closeDialog = () => {
             dialog.remove();
             document.removeEventListener('keydown', handleEscape);
         };
-
+    
         const handleEscape = (event) => {
             if (event.key === 'Escape') closeDialog();
         };
         dialog.querySelector('.close').onclick = closeDialog;
         dialog.querySelector('.close-selector').onclick = closeDialog;
         document.addEventListener('keydown', handleEscape);
-
+    
         // Folder filter functionality
-        dialog.querySelector('#folder-filter').addEventListener('change', (e) => {
-            const selectedFolder = e.target.value;
-            const folderSections = dialog.querySelectorAll('.folder-section');
-            folderSections.forEach(section => {
-                section.style.display = !selectedFolder || section.dataset.folder === selectedFolder
-                    ? 'block' 
-                    : 'none';
+        const folderFilter = dialog.querySelector('#folder-filter');
+        if (folderFilter) {
+            folderFilter.addEventListener('change', (e) => {
+                const selectedFolder = e.target.value;
+                const folderSections = dialog.querySelectorAll('.folder-section');
+                folderSections.forEach(section => {
+                    section.style.display = !selectedFolder || section.dataset.folder === selectedFolder
+                        ? 'block' 
+                        : 'none';
+                });
             });
-        });
-
-        // Conversation selection
-        dialog.querySelectorAll('.conversation-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                if (!e.target.closest('.conversation-actions') && 
-                    !e.target.closest('.name-edit')) {
-                    const conversation = JSON.parse(item.dataset.conversation);
-                    this.loadConversation(conversation);
+        }
+    
+        // Use event delegation for conversation clicks
+        dialog.addEventListener('click', (e) => {
+            // Find the closest conversation-item ancestor of the clicked element
+            const conversationItem = e.target.closest('.conversation-item');
+            
+            // If we found a conversation item and the click wasn't on action buttons
+            if (conversationItem && 
+                !e.target.closest('.conversation-actions') && 
+                !e.target.closest('.name-edit')) {
+                
+                const conversationData = this.debugConversationData(conversationItem);
+                if (conversationData) {
+                    this.loadConversation(conversationData);
                     closeDialog();
+                }
+            }            
+        });
+    
+        // Setup tab navigation
+        dialog.querySelectorAll('.tab-item').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Update active tab
+                dialog.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Show the selected page, hide others
+                const targetPage = tab.dataset.page;
+                dialog.querySelectorAll('.dialog-page').forEach(page => {
+                    page.style.display = page.id === `${targetPage}-page` ? 'block' : 'none';
+                });
+                
+                // Special handling for search page
+                if (targetPage === 'search') {
+                    const searchInput = dialog.querySelector('#conversation-search');
+                    if (searchInput) searchInput.focus();
                 }
             });
         });
-
+        
+        // Setup search functionality
+        const searchInput = dialog.querySelector('#conversation-search');
+        const searchButton = dialog.querySelector('#search-button');
+        
+        if (searchInput && searchButton) {
+            const performSearch = async () => {
+                const query = searchInput.value.trim();
+                if (!query) return;
+                
+                const searchResultsList = dialog.querySelector('#search-results-list');
+                searchResultsList.innerHTML = '<div class="loading-indicator">Searching...</div>';
+                
+                try {
+                    const results = await this.searchConversations(query);
+                    if (results.length === 0) {
+                        searchResultsList.innerHTML = '<div class="no-results">No conversations found matching your search</div>';
+                    } else {
+                        searchResultsList.innerHTML = this.generateSearchResultsList(results);
+                        // Setup rename/delete actions for the new elements
+                        this.setupConversationActions(dialog);
+                    }
+                } catch (error) {
+                    console.error('Search error:', error);
+                    searchResultsList.innerHTML = '<div class="error-message">Error performing search</div>';
+                }
+            };
+            
+            searchButton.addEventListener('click', performSearch);
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') performSearch();
+            });
+        }
+    
         // Setup rename and delete buttons
         this.setupConversationActions(dialog);
-    }
-
+    }   
+    
     async saveConversation(name, folder) {
         try {
             const token = localStorage.getItem('token');
@@ -278,16 +576,18 @@ export class ConversationManager {
     }
 
     async loadConversation(conversation) {
+        console.log('Loading conversation:', conversation); // Add this for debugging
+        
         const chatMessages = document.getElementById('chat-messages');
         const currentChatElement = document.getElementById('current-chat');
         const messageInput = document.getElementById('message-input');
-
+    
         const originalContent = chatMessages.innerHTML;
         const originalCurrentChat = currentChatElement.innerHTML;
-
+    
         const loadingOverlay = showLoadingOverlay(chatMessages, 'Loading conversation...');
         messageInput.disabled = true;
-
+    
         try {
             this.chat.history = [];
             currentChatElement.innerHTML = `Conversation: ${conversation.name}`;
@@ -303,19 +603,19 @@ export class ConversationManager {
                 timestamp: message.timestamp,
                 model: message.model
             }));
-
+    
             chatMessages.innerHTML = '';
             this.chat.history.forEach(msg => this.chat.addMessage(msg));
             this.chat.addCopyButtonToCodeBlocks();
-
+    
             localStorage.setItem('chatHistory', JSON.stringify(this.chat.history));
             localStorage.setItem('currentConversationId', this.currentId);
             localStorage.setItem('currentConversationTouched', "false");
-
+    
             // Scroll to the top of the chat
             const messagesContainer = document.getElementById('chat-messages');
             messagesContainer.scrollTop = 0;
-
+    
             //Intialize the scroll buttons
             this.app.updateScrollButtons();            
         } catch (error) {
@@ -329,7 +629,7 @@ export class ConversationManager {
             messageInput.focus();
         }
     }
-
+    
     // Helper methods for conversation management
     async getFolders() {
         try {
@@ -447,11 +747,27 @@ export class ConversationManager {
     }
 
     generateConversationList(conversationsByFolder) {
-        return Object.entries(conversationsByFolder).map(([folder, convs]) => `
-            <div class="folder-section" data-folder="${escapeHTML(folder)}">
-                <div class="folder-header">${escapeHTML(folder)}</div>
-                ${convs.map((conv) => `
-                    <div class="conversation-item" data-conversation='${JSON.stringify(conv)}'>
+        return Object.entries(conversationsByFolder).map(([folder, convs]) => {
+            const conversationItems = convs.map((conv) => {
+                // Create a clean conversation object
+                const conversationData = {
+                    id: conv.id,
+                    name: conv.name,
+                    folder: conv.folder,
+                    updated_at: conv.updated_at,
+                    message_count: conv.message_count || 0
+                };
+                
+                // Serialize to JSON and ensure it's properly escaped for HTML attribute
+                const safeJsonData = JSON.stringify(conversationData)
+                    .replace(/&/g, '&amp;')
+                    .replace(/'/g, '&apos;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+                    
+                return `
+                    <div class="conversation-item" data-conversation="${safeJsonData}">
                         <div class="conversation-content">
                             <div class="conversation-name" data-id="${conv.id}">
                                 <span class="name-text">${escapeHTML(conv.name)}</span>
@@ -460,7 +776,7 @@ export class ConversationManager {
                                     style="display: none;">
                             </div>
                             <div class="conversation-date">
-                                ${formatDate(new Date(conv.updated_at))} (${conv.message_count} messages)
+                                ${formatDate(new Date(conv.updated_at))} (${conv.message_count || 0} messages)
                             </div>
                         </div>
                         <div class="conversation-actions">
@@ -472,11 +788,75 @@ export class ConversationManager {
                             </button>
                         </div>
                     </div>
-                `).join('')}
-            </div>
-        `).join('');
+                `;
+            }).join('');
+            
+            return `
+                <div class="folder-section" data-folder="${escapeHTML(folder)}">
+                    <div class="folder-header">${escapeHTML(folder)}</div>
+                    ${conversationItems}
+                </div>
+            `;
+        }).join('');
     }
-
+    
+    generateRecentConversationsList(conversations) {
+        // Sort conversations by updated_at date, most recent first
+        const recentConversations = [...conversations].sort((a, b) => 
+            new Date(b.updated_at) - new Date(a.updated_at)
+        ).slice(0, 10); // Get only the 10 most recent
+        
+        if (recentConversations.length === 0) {
+            return '<div class="no-conversations">No recent conversations found</div>';
+        }
+        
+        return recentConversations.map(conv => {
+            // Create a clean conversation object
+            const conversationData = {
+                id: conv.id,
+                name: conv.name,
+                folder: conv.folder,
+                updated_at: conv.updated_at,
+                message_count: conv.message_count || 0
+            };
+            
+            // Serialize to JSON and ensure it's properly escaped for HTML attribute
+            const safeJsonData = JSON.stringify(conversationData)
+                .replace(/&/g, '&amp;')
+                .replace(/'/g, '&apos;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+                
+            return `
+                <div class="conversation-item" data-conversation="${safeJsonData}">
+                    <div class="conversation-content">
+                        <div class="conversation-name" data-id="${conv.id}">
+                            <span class="name-text">${escapeHTML(conv.name)}</span>
+                            <input type="text" class="name-edit" 
+                                value="${escapeHTML(conv.name)}" 
+                                style="display: none;">
+                        </div>
+                        <div class="conversation-info">
+                            <span class="conversation-date">
+                                ${formatDate(new Date(conv.updated_at))} (${conv.message_count || 0} messages)
+                            </span>
+                            <span class="conversation-folder">${escapeHTML(conv.folder)}</span>
+                        </div>
+                    </div>
+                    <div class="conversation-actions">
+                        <button class="rename-btn" title="Rename">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-btn" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
     setupConversationActions(dialog) {
         // Setup rename functionality
         dialog.querySelectorAll('.rename-btn').forEach(btn => {
@@ -614,5 +994,20 @@ export class ConversationManager {
         localStorage.removeItem('currentFolder');
         alert('Your session has expired. Please login again.');
         window.location.href = '/static/login.html';
+    }
+
+    debugConversationData(conversationItem) {
+        console.log('Conversation element:', conversationItem);
+        console.log('Raw data-conversation:', conversationItem.getAttribute('data-conversation'));
+        try {
+            const data = JSON.parse(conversationItem.getAttribute('data-conversation'));
+            console.log('Parsed data:', data);
+            return data;
+        } catch (error) {
+            console.error('Error parsing conversation data:', error);
+            console.log('Character at error position:', 
+                conversationItem.getAttribute('data-conversation').charAt(error.message.match(/position (\d+)/)?.[1] || 0));
+            return null;
+        }
     }
 }

@@ -3,6 +3,7 @@ export const API_ENDPOINTS = {
     CHAT: '/chat',
     SETTINGS: '/settings',
     CONVERSATIONS: '/api/conversations',
+    CONVERSATION_SEARCH: '/api/conversations/search',
     MODELS: '/api/models',
     FOLDERS: '/api/folders'
 };
