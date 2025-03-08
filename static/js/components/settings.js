@@ -1,6 +1,7 @@
 // components/settings.js
 import { DEFAULT_SETTINGS } from '../utils/constants.js';
 import { SettingsApi } from '../api/settingsApi.js';
+import { SystemMessageApi } from '../api/systemMessageApi.js';
 
 export class Settings {
     constructor() {
@@ -34,6 +35,7 @@ export class Settings {
         await this.loadModels();
         await this.loadSettings(false);
         this.setupEventListeners();
+        this.setupSystemMessagePresets();
     }
 
     setupEventListeners() {
@@ -67,6 +69,77 @@ export class Settings {
         // Restore defaults
         document.getElementById('restore-defaults').addEventListener('click', 
             () => this.restoreDefaults(true));
+
+        // System message preset selector
+        document.getElementById('system-preset-select').addEventListener('change', 
+            (e) => this.handleSystemPresetChange(e));
+    }
+
+    async setupSystemMessagePresets() {
+        try {
+            const presetSelector = document.getElementById('system-preset-select');
+            if (!presetSelector) return;
+
+            // Clear existing options
+            presetSelector.innerHTML = '<option value="">Select a preset...</option>';
+            
+            // Add "Custom" option
+            //const customOption = document.createElement('option');
+            //customOption.value = "custom";
+            //customOption.textContent = "Custom Message";
+            //presetSelector.appendChild(customOption);
+            
+            // Fetch categories
+            const categories = await SystemMessageApi.getSystemMessageCategories();
+            
+            // Create optgroups for each category
+            for (const category of categories) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = category;
+                
+                // Fetch messages for this category
+                const messages = await SystemMessageApi.getSystemMessagesByCategory(category);
+                
+                // Add options for each message
+                messages.forEach(msg => {
+                    const option = document.createElement('option');
+                    option.value = msg.id;
+                    option.textContent = msg.name;
+                    option.dataset.message = msg.message;
+                    option.dataset.description = msg.description;
+                    optgroup.appendChild(option);
+                });
+                
+                presetSelector.appendChild(optgroup);
+            }
+        } catch (error) {
+            console.error('Error setting up system message presets:', error);
+        }
+    }
+
+    handleSystemPresetChange(event) {
+        const selectedOption = event.target.options[event.target.selectedIndex];
+        const systemPrompt = document.getElementById('system-prompt');
+        const presetDescription = document.getElementById('preset-description');
+        
+        //if (selectedOption.value === 'custom' || !selectedOption.value) {
+            // For custom or empty selection, don't change the text
+        //    presetDescription.textContent = 'Enter a custom system message.';
+        //    presetDescription.style.display = 'block';
+        //    systemPrompt.value = '';
+        //    return;
+        //}
+        
+        // Update the system prompt with the selected preset
+        systemPrompt.value = selectedOption.dataset.message || '';
+        
+        // Show description if available
+        if (selectedOption.dataset.description) {
+            presetDescription.textContent = selectedOption.dataset.description;
+            presetDescription.style.display = 'block';
+        } else {
+            presetDescription.style.display = 'block';
+        }
     }
 
     async loadModels() {
@@ -102,18 +175,23 @@ export class Settings {
         const selectedOption = this.modelSelect.querySelector('option:checked');
         const systemPromptArea = this.systemPrompt;
         const overlay = document.querySelector('#system-prompt-overlay');
+        const presetSelector = document.getElementById('system-preset-select');
 
         if (!selectedOption || !systemPromptArea || !overlay) {
             console.error('Required elements for model change not found');
             return;
         }
 
-        if (selectedOption.dataset.systemPromptSupported === 'Yes') {
-            systemPromptArea.disabled = false;
-            overlay.style.display = 'none';
-        } else {
-            systemPromptArea.disabled = true;
-            overlay.style.display = 'flex';
+        const systemPromptSupported = selectedOption.dataset.systemPromptSupported === 'Yes';
+        
+        // Update system prompt field
+        systemPromptArea.disabled = !systemPromptSupported;
+        overlay.style.display = systemPromptSupported ? 'none' : 'flex';
+        
+        // Update preset selector
+        if (presetSelector) {
+            presetSelector.disabled = !systemPromptSupported;
+            //document.getElementById('preset-label').classList.toggle('disabled', !systemPromptSupported);
         }
     }
 
@@ -142,6 +220,14 @@ export class Settings {
         this.temperature.value = settings.temperature || DEFAULT_SETTINGS.temperature;
         this.maxTokens.value = settings.max_tokens || DEFAULT_SETTINGS.max_tokens;
         
+        // Reset preset selector
+        const presetSelector = document.getElementById('system-preset-select');
+        if (presetSelector) {
+            presetSelector.value = '';
+            //document.getElementById('preset-description').style.display = 'none';
+            document.getElementById('preset-description').textContent = 'Optionally select system message from presets below.';
+        }
+        
         // Only call handleModelChange if elements exist
         if (this.modelSelect.querySelector('option:checked')) {
             this.handleModelChange();
@@ -164,18 +250,7 @@ export class Settings {
             this.saveSettings(settings);
             this.modal.style.display = "none";
             document.getElementById('message-input').focus();
-            // const response = await fetch('/update-settings', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify(settings)
-            // });
-            // if (response.ok) {
-            //     this.saveSettings(settings);
-            //     this.modal.style.display = "none";
-            //     document.getElementById('message-input').focus();
-            // } else {
-            //     throw new Error('Failed to update settings');
-            // }
+
         } catch (error) {
             console.error('Error updating settings:', error);
             alert('Error updating settings');
@@ -199,22 +274,6 @@ export class Settings {
               document.getElementById('message-input').focus();
             }
 
-            // const response = await fetch('/update-settings', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify(defaultSettings)
-            // });
-
-            // if (response.ok) {
-            //     this.saveSettings(defaultSettings);
-            //     this.applySettings(defaultSettings);
-            //     if (showConfirmation) {
-            //         this.modal.style.display = "none";
-            //         document.getElementById('message-input').focus();
-            //     }
-            // } else {
-            //     throw new Error('Failed to restore default settings');
-            // }
         } catch (error) {
             console.error('Error restoring defaults:', error);
             if (showConfirmation) {
