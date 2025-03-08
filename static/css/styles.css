@@ -73,7 +73,6 @@ p {
 
 .button-container button {
     margin-right: 5px;
-    margin-right: 5px;
 }
 
 .chat-container {
@@ -110,7 +109,7 @@ p {
     color: #6c757d;
     position: absolute;
     bottom: -14px;
-    right: 5px;
+    right: 12px;
 }
 
 .message-actions {
@@ -377,7 +376,7 @@ p {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     z-index: 999;
     display: none;
 }
@@ -532,14 +531,27 @@ button:hover {
     width: 98%;
     border: 1px solid #dee2e6;
     border-radius: 5px;
-    font-size: 14px;
-    resize: none;
+    font-size: 12px;
+    resize: block;
     min-height: 80px;
 }
 
 .error {
     color: #dc3545;
     background-color: #f8d7da;
+}
+
+.folder-selection-area {
+    height: 40px;
+    /* Set this to accommodate the taller of your two elements */
+    position: relative;
+}
+
+#folder-select, #new-folder-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
 }
 
 .form-group select {
@@ -579,7 +591,7 @@ button:hover {
     top: 0;
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: -77px;
     background-color: rgba(245, 245, 245, 0.9);
     display: flex;
     align-items: center;
@@ -588,6 +600,7 @@ button:hover {
     padding: 10px;
     font-size: 14px;
     color: #666;
+    z-index: 1000;
 }
 
 #system-prompt:disabled {
@@ -744,6 +757,28 @@ button:hover {
     cursor: pointer;
 }
 
+.textarea-container textarea.expanded {
+    position: fixed;
+    top: 57px;
+    left: -5px;
+    width: calc(100vw - 10px) !important;
+    height: calc(100vh - 70px) !important;
+    z-index: 10000;
+    background: white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.textarea-container textarea.expanded+.expand-icon {
+    position: fixed;
+    -webkit-transform: rotate(-180deg);
+    -moz-transform: rotate(-180deg);
+    transform: rotate(-180deg);
+    top: 71px;
+    right: 9px;
+}
+
 @media (hover: none) {
     .message-actions {
         display: flex;
@@ -792,29 +827,6 @@ button:hover {
     .copy-code-button {
         opacity: 1;
     }
-
-    .textarea-container textarea.expanded {
-        position: fixed;
-        /*top: 57px;
-        left: -5px;
-        width: calc(100vw - 10px) !important;
-        height: calc(100vh - 70px) !important;*/
-        top: 270px;
-        left: -5px;
-        width: calc(100vw - 10px) !important;
-        height: calc(100vh - 287px) !important;
-        z-index: 10000;
-        background: white;
-        box-shadow: 0 0 10px rgba(0,0,0,0.3);
-        border-radius: 8px;
-        padding: 20px;
-    }
-    
-    .textarea-container textarea.expanded + .expand-icon {
-        position: fixed;
-        top: 283px;
-        right: 11px;
-    }
 }
 
 @media (hover: hover) {
@@ -831,28 +843,6 @@ button:hover {
     .message-content code:hover .copy-code-button {
         display: block;
     }
-
-    .textarea-container textarea.expanded {
-        position: fixed;
-        top: 57px;
-        left: -5px;
-        width: calc(100vw - 10px) !important;
-        height: calc(100vh - 70px) !important;
-        z-index: 10000;
-        background: white;
-        box-shadow: 0 0 10px rgba(0,0,0,0.3);
-        border-radius: 8px;
-        padding: 20px;
-    }
-    
-    .textarea-container textarea.expanded + .expand-icon {
-        position: fixed;
-        -webkit-transform: rotate(-180deg); 
-        -moz-transform: rotate(-180deg);    
-        transform:rotate(-180deg);
-        top: 71px;
-        right: 9px;
-    }
 }
 
 .conversation-selector {
@@ -868,14 +858,36 @@ button:hover {
     z-index: 1000;
 }
 
+.save-conversation {
+    background: white;
+    padding-top: 10px;
+    padding-bottom: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    border-radius: 8px;
+    width: 400px;
+    height: 225px;
+    overflow-y: auto;
+}
+
+.folder-select-container select {
+    border-radius: 4px;
+    max-width: 200px;
+    height: 35px;
+    font-size: 14px;
+}
+
+.new-folder {
+    width: 200px !important;
+}
+
 .conversation-selector-content {
     background: white;
     padding: 20px;
     border-radius: 8px;
-    max-width: 600px !important;
+    width: 600px;
     max-height: 80vh;
     overflow-y: auto;
-    height: 700px;
 }
 
 .conversation-selector-content label {
@@ -885,16 +897,6 @@ button:hover {
 .conversation-preview {
     font-size: 0.9em;
     color: #666;
-}
-
-.conversation-selector-content {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    max-width: 500px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
 }
 
 .form-group {
@@ -923,7 +925,6 @@ button:hover {
     display: flex;
     gap: 10px;
     justify-content: space-between;
-    margin-top: 20px;
 }
 
 .dialog-buttons button {
@@ -1019,19 +1020,17 @@ button:hover {
     margin-bottom: 5px;
 }
 
-.folder-select-container {
-    margin-bottom: 20px;
-    display: flex;
-    gap: 10px;
-    align-items: center;
+.folder-select-container select {
+    border-radius: 4px;
+    max-width: 200px;
+    height: 35px;
+    font-size: 14px;
 }
 
-.folder-select-container select {
-    flex-grow: 1;
-    padding: 8px;
-    border: 1px solid #ddd;
+.folder-filter {
     border-radius: 4px;
-    width: 100%;
+    width: 200px !important;
+    height: 35px !important;
     font-size: 14px;
 }
 
@@ -1151,7 +1150,7 @@ button:hover {
     padding: 4px 12px;
     cursor: pointer;
     z-index: 99;
-    box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .input-minimize-tab i {
@@ -1184,7 +1183,7 @@ button:hover {
 }
 
 /* Ensure the chat messages area expands when input is minimized */
-.chat-input-container.minimized + .chat-messages {
+.chat-input-container.minimized+.chat-messages {
     height: calc(100vh - 100px);
 }
 
@@ -1202,7 +1201,7 @@ button:hover {
     align-items: center;
     cursor: pointer;
     z-index: 100;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     transition: all 0.2s ease;
 }
 
@@ -1249,20 +1248,6 @@ button:hover {
     content: "Copied!";
     opacity: 1;
 }
-
-/* Dialog layout
-.dialog-layout {
-    display: flex;
-    height: 400px;
-    margin-bottom: 15px;
-}
-
-.dialog-sidebar {
-    width: 115px;
-    border-right: 1px solid #ddd;
-    padding: 10px 0;
-}
-*/
 
 /* Dialog content */
 .dialog-content {
@@ -1331,6 +1316,11 @@ button:hover {
     padding-bottom: 10px;
 }
 
+.page-header label {
+    display: block;
+    margin-bottom: 5px;
+}
+
 /* Search page */
 .search-container {
     display: flex;
@@ -1354,7 +1344,10 @@ button:hover {
     cursor: pointer;
 }
 
-.search-placeholder, .no-results, .loading-indicator, .error-message {
+.search-placeholder,
+.no-results,
+.loading-indicator,
+.error-message {
     padding: 20px;
     text-align: center;
     color: #888;
@@ -1380,20 +1373,7 @@ button:hover {
     border-radius: 4px;
     margin-right: 25px;
 }
-/*
-.match-label {
-    font-weight: bold;
-    margin-bottom: 3px;
-    color: #555;
-}
 
-.match-text {
-    color: #666;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-*/
 .highlight {
     background-color: #ffeb3b;
     padding: 0 2px;
@@ -1408,4 +1388,36 @@ button:hover {
     word-break: break-word;
     line-height: 1.4;
     font-size: 11px;
+}
+
+/* Add to your styles.css file */
+.preset-selector {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.preset-selector label {
+    margin-right: 10px;
+}
+
+.preset-selector select {
+    flex-grow: 1;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.preset-description {
+    font-size: 14px;
+    font-style: italic;
+    color: #555;
+    margin-bottom: 8px;
+    padding: 8px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+}
+
+label.disabled {
+    color: #999;
 }

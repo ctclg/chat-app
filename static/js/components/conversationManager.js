@@ -77,7 +77,7 @@ export class ConversationManager {
         const dialog = document.createElement('div');
         dialog.className = 'conversation-selector';
         dialog.innerHTML = `
-            <div class="conversation-selector-content">
+            <div class="save-conversation">
                 <span class="close">&times;</span>
                 <h3>Save Conversation</h3>
                 <div class="form-group">
@@ -89,20 +89,22 @@ export class ConversationManager {
                 </div>
                 <div class="form-group">
                     <label for="folder-select">Folder:</label>
-                    <div class="folder-select-container">
-                        <select id="folder-select">
-                            <option value="">-- Select Folder --</option>
-                            ${folders.map(folder =>
-                                `<option value="${escapeHTML(folder)}" 
-                                    ${folder === currentFolder ? 'selected' : ''}>
-                                    ${escapeHTML(folder)}
-                                </option>`
-                            ).join('')}
-                        </select>
+                    <div class="folder-selection-area">
+                        <div class="folder-select-container">
+                            <select id="folder-select">
+                                <option value="">-- Select Folder --</option>
+                                ${folders.map(folder =>
+                                    `<option value="${escapeHTML(folder)}" 
+                                        ${folder === currentFolder ? 'selected' : ''}>
+                                        ${escapeHTML(folder)}
+                                    </option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        <div id="new-folder-input" class="form-group" style="display: none;">
+                            <input type="text" id="new-folder" class="new-folder" maxlength="20" placeholder="Enter new folder name">
+                        </div>
                     </div>
-                </div>
-                <div id="new-folder-input" class="form-group" style="display: none;margin-top:-19px;">
-                    <input type="text" id="new-folder" placeholder="Enter new folder name">
                 </div>
                 <div class="dialog-buttons">
                     <button id="new-folder-button" class="new-folder-button" type="button">New Folder</button>
@@ -156,37 +158,6 @@ export class ConversationManager {
         };
     }
 
-/*    
-    async showLoadDialog(conversations) {
-        const conversationsByFolder = this.organizeConversationsByFolder(conversations);
-
-        const dialog = document.createElement('div');
-        dialog.className = 'conversation-selector';
-        dialog.innerHTML = `
-            <div class="conversation-selector-content">
-                <span class="close">&times;</span>
-                <h3>Select a Conversation</h3>
-                <label for="folder-filter">Folder:</label>
-                <div class="folder-select-container">
-                    <select id="folder-filter">
-                        <option value="">All Folders</option>
-                        ${Object.keys(conversationsByFolder).map(folder => 
-                            `<option value="${escapeHTML(folder)}">${escapeHTML(folder)}</option>`
-                        ).join('')}
-                    </select>
-                </div>
-                <div class="conversation-list">
-                    ${this.generateConversationList(conversationsByFolder)}
-                </div>
-                <button class="close-selector">Cancel</button>
-            </div>
-        `;
-
-        document.body.appendChild(dialog);
-        this.setupLoadDialogListeners(dialog);
-    }
-*/
-
     async showLoadDialog(conversations) {
         const dialog = document.createElement('div');
         dialog.className = 'conversation-selector';
@@ -213,16 +184,16 @@ export class ConversationManager {
                     <!-- Browse page -->
                     <div class="dialog-page" id="browse-page">
                         <div class="page-header">
-                            <label for="folder-filter">Select Folder:</label>
+                            <label for="folder-filter">Folder:</label>
                             <div class="folder-select-container">
-                                <select id="folder-filter">
+                                <select id="folder-filter" class="folder-filter">
                                     <option value="">All Folders</option>
                                     ${Object.keys(this.organizeConversationsByFolder(conversations)).map(folder => 
                                         `<option value="${escapeHTML(folder)}">${escapeHTML(folder)}</option>`
                                     ).join('')}
                                 </select>
                             </div>
-                        </div>
+                        </div><br>
                         <div class="conversation-list">
                             ${this.generateConversationList(this.organizeConversationsByFolder(conversations))}
                         </div>

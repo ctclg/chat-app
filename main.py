@@ -1,7 +1,7 @@
 #main.py
 
 import json, logging, openai, os, re, secrets, uuid, anthropic, asyncio
-from azure.cosmos import CosmosClient, PartitionKey
+from azure.cosmos import CosmosClient, PartitionKey, exceptions
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Form, HTTPException, Depends, status, APIRouter, BackgroundTasks, APIRouter, Query, Body
@@ -108,6 +108,7 @@ database = cosmos_client.get_database_client("chat_app")
 usercontainer = database.get_container_client("users")
 conversationcontainer = database.get_container_client("conversations")
 tokencontainer = database.get_container_client("tokens")
+systemmessagescontainer = database.get_container_client("system messages")
 
 # JWT Configuration
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -1449,6 +1450,52 @@ async def rename_conversation(
             status_code=500,
             detail="Failed to rename conversation"
         )
+
+# Get system messages
+@app.get("/api/system-messages", response_model=List[Dict[str, Any]])
+async def get_system_messages():
+    """Retrieve all active system messages, grouped by category."""
+    try:
+        # Query for all active system messages, ordered by category and displayOrder
+        query = "SELECT * FROM c WHERE c.isActive = true ORDER BY c.category, c.displayOrder"
+        items = list(systemmessagescontainer.query_items(
+            query=query,
+            enable_cross_partition_query=True
+        ))
+        return items
+    except exceptions.CosmosHttpResponseError as e:
+        logger.error(f"Error retrieving system messages: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@app.get("/api/system-messages/categories", response_model=List[str])
+async def get_system_message_categories():
+    """Retrieve all unique categories of system messages."""
+    try:
+        query = "SELECT DISTINCT c.category FROM c WHERE c.isActive = true ORDER BY c.category"
+        items = list(systemmessagescontainer.query_items(
+            query=query,
+            enable_cross_partition_query=True
+        ))
+        return [item['category'] for item in items]
+    except exceptions.CosmosHttpResponseError as e:
+        logger.error(f"Error retrieving system message categories: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@app.get("/api/system-messages/category/{category}", response_model=List[Dict[str, Any]])
+async def get_system_messages_by_category(category: str):
+    """Retrieve all active system messages for a specific category."""
+    try:
+        query = "SELECT * FROM c WHERE c.isActive = true AND c.category = @category ORDER BY c.displayOrder"
+        parameters = [{"name": "@category", "value": category}]
+        items = list(systemmessagescontainer.query_items(
+            query=query,
+            parameters=parameters,
+            enable_cross_partition_query=True
+        ))
+        return items
+    except exceptions.CosmosHttpResponseError as e:
+        logger.error(f"Error retrieving system message category: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 # Debugging routes
 @app.get("/api/debug/routes")

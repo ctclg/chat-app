@@ -47,14 +47,40 @@
                     <div class="form-group">
                         <label for="system-prompt">System Message:</label>
                         <div class="system-prompt-container" style="position: relative;">
+                            <div id="system-prompt-overlay" class="overlay-message">
+                                System message not supported for the selected model.
+                            </div>
                             <textarea id="system-prompt" class="system-prompt"
                                 rows="3">You are a helpful assistant.</textarea>
-                            <p style="font-size: 12px; font-style: italic;">For Claude models the system message is applied to the next message in a conversation.<br>For other models that support system messages it is only applied to new conversations.</p>
+                        </div>
+                        <div id="preset-description" class="preset-description" style="display: block;">Optionally
+                            select system message from presets below.</div>
+                        <div class="preset-selector">
+                            <!--<label for="system-preset-select" id="preset-label">Preset:</label>-->
+                            <select id="system-preset-select">
+                                <option value="">Select a preset...</option>
+                                <!-- <option value="custom">Custom Message</option> -->
+                                <!-- Presets will be loaded here -->
+                            </select>
+                        </div>
+                    </div>
+                    <p style="font-size: 12px; font-style: italic; white-space: nowrap;">For Claude models the system
+                        message is applied to
+                        the next message in a conversation.<br>For other models that support system messages it is only
+                        applied to new conversations.</p>
+                    <!--
+                    <div class="form-group">
+                        <label for="system-prompt">System Message:</label>
+                        <div class="system-prompt-container" style="position: relative;">
+                            <textarea id="system-prompt" class="system-prompt"
+                                rows="3">You are a helpful assistant.</textarea>
                             <div id="system-prompt-overlay" class="overlay-message">
                                 System message not supported for the selected model.
                             </div>
                         </div>
+                        <p style="font-size: 12px; font-style: italic;">For Claude models the system message is applied to the next message in a conversation.<br>For other models that support system messages it is only applied to new conversations.</p>
                     </div>
+                    -->
                     <div style="display: flex;">
                         <div class="form-group" style="width: 120px;">
                             <!--<label for="temperature">Temperature:</label>-->
@@ -119,7 +145,7 @@
         <div class="chat-input-container" id="chat-input-container">
             <div class="input-minimize-tab" id="input-minimize-tab">
                 <i class="fas fa-chevron-down" id="toggle-input-container"></i>
-            </div>        
+            </div>
             <div class="char-count" id="char-count">0 characters</div>
             <form id="chat-form">
                 <div class="selected-model" id="selected-model">Model</div>
@@ -127,7 +153,8 @@
                     <textarea id="message-input"
                         placeholder="Type your message... (Press Shift + Enter for new line, Enter to send)"
                         rows="3"></textarea>
-                    <div class="expand-icon"><i style="scale:60%" class="fa-solid fa-arrow-up-right-from-square"></i></div>
+                    <div class="expand-icon"><i style="scale:60%" class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </div>
                 </div>
                 <div>
                     <div id="typing-indicator" class="typing-indicator" style="display: block;">
@@ -179,21 +206,22 @@
             if (textarea.classList.contains('expanded')) {
                 document.body.style.overflow = 'hidden';
                 textarea.focus();
+                window.scrollTo(0, 0);
             } else {
                 document.body.style.overflow = '';
             }
         }
 
         // Add this new code for the minimize/maximize functionality
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const inputContainer = document.getElementById('chat-input-container');
             const toggleTab = document.getElementById('input-minimize-tab');
             const toggleIcon = document.getElementById('toggle-input-container');
-            
+
             if (toggleTab && inputContainer) {
-                toggleTab.addEventListener('click', function() {
+                toggleTab.addEventListener('click', function () {
                     inputContainer.classList.toggle('minimized');
-                    
+
                     // Change the icon based on state
                     if (inputContainer.classList.contains('minimized')) {
                         toggleIcon.classList.remove('fa-chevron-down');
@@ -202,12 +230,12 @@
                         toggleIcon.classList.remove('fa-chevron-up');
                         toggleIcon.classList.add('fa-chevron-down');
                     }
-                    
+
                     // Adjust the chat messages container height
                     adjustChatMessagesHeight();
                 });
             }
-            
+
             function adjustChatMessagesHeight() {
                 const chatMessages = document.querySelector('.chat-messages');
                 const chatInputContainer = document.querySelector('.chat-input-container');
@@ -236,18 +264,18 @@
             }
         });
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Initial button setup
             setupCopyButton();
-            
+
             // This function can be called whenever you load a new conversation
             function setupCopyButton() {
                 let copyButton = document.getElementById('copy-conversation');
                 const chatMessages = document.getElementById('chat-messages');
-                
+
                 // Check if chat is empty
                 const isEmpty = !chatMessages || chatMessages.children.length === 0;
-                
+
                 // If the button doesn't exist, create it
                 if (!copyButton) {
                     const chatContainer = document.querySelector('.chat-container');
@@ -256,12 +284,12 @@
                         copyButton.id = 'copy-conversation';
                         copyButton.className = 'copy-conversation-button';
                         copyButton.innerHTML = '<i class="fas fa-copy"></i>';
-                        
+
                         // Insert at the beginning of chat container
                         chatContainer.insertBefore(copyButton, chatContainer.firstChild);
                     }
                 }
-                
+
                 // Show or hide the button based on whether chat is empty
                 if (copyButton) {
                     if (isEmpty) {
@@ -269,21 +297,21 @@
                     } else {
                         copyButton.style.display = 'flex';
                     }
-                    
+
                     // Remove any existing listeners to prevent duplicates
                     copyButton.removeEventListener('click', handleCopyClick);
                     // Add the click handler
                     copyButton.addEventListener('click', handleCopyClick);
                 }
             }
-        
+
             // Extract the copy functionality to a named function
             function handleCopyClick() {
                 try {
                     // Try different possible localStorage keys
                     let conversationData;
                     let conversationTitle = "Conversation";
-                    
+
                     // Check for conversation data in different possible formats
                     if (localStorage.getItem("currentConversation")) {
                         conversationData = localStorage.getItem("chatHistory");
@@ -295,7 +323,7 @@
                         for (let i = 0; i < localStorage.length; i++) {
                             const key = localStorage.key(i);
                             const value = localStorage.getItem(key);
-                            
+
                             // Check if the value looks like a conversation (contains messages with roles)
                             if (value && value.includes('"role"') && value.includes('"content"')) {
                                 conversationData = value;
@@ -303,43 +331,43 @@
                             }
                         }
                     }
-                    
+
                     if (!conversationData) {
                         // If no conversation data found, try to get it from the DOM
                         const messages = document.querySelectorAll('.message');
                         if (messages.length > 0) {
                             let extractedConversation = [];
-                            
+
                             messages.forEach(msg => {
                                 const isUser = msg.classList.contains('user-message');
                                 const isAssistant = msg.classList.contains('assistant-message');
                                 const isSystem = msg.classList.contains('system-message');
-                                
+
                                 let role = 'unknown';
                                 if (isUser) role = 'user';
                                 if (isAssistant) role = 'assistant';
                                 if (isSystem) role = 'system';
-                                
+
                                 const content = msg.querySelector('.message-content').innerText;
-                                
+
                                 extractedConversation.push({
                                     role: role,
                                     content: content
                                 });
                             });
-                            
+
                             conversationData = JSON.stringify(extractedConversation);
                         } else {
                             throw new Error("No conversation data found");
                         }
                     }
-                    
+
                     // Parse the conversation data
                     const messages = JSON.parse(conversationData);
-                    
+
                     // Format the conversation for copying
                     let formattedConversation = `# ${conversationTitle}\n\n`;
-                    
+
                     messages.forEach(msg => {
                         if (msg && msg.role) {
                             const role = msg.role.charAt(0).toUpperCase() + msg.role.slice(1);
@@ -347,7 +375,7 @@
                             formattedConversation += `${msg.content || ''}\n\n`;
                         }
                     });
-                    
+
                     // Copy to clipboard
                     navigator.clipboard.writeText(formattedConversation)
                         .then(() => {
@@ -355,13 +383,13 @@
                             const copyButton = document.getElementById('copy-conversation');
                             if (copyButton) {
                                 copyButton.classList.add('copied');
-                                
+
                                 // Remove the 'copied' class after 2 seconds
                                 setTimeout(() => {
                                     copyButton.classList.remove('copied');
                                 }, 2000);
                             }
-                            
+
                             console.log("Conversation copied successfully");
                         })
                         .catch(err => {
@@ -371,7 +399,7 @@
                 } catch (error) {
                     console.error('Error processing conversation data: ', error);
                     alert('Error processing conversation data: ' + error.message);
-                    
+
                     // Fallback: Try to copy what's visible on screen
                     try {
                         const chatMessages = document.getElementById('chat-messages');
@@ -389,45 +417,46 @@
                     }
                 }
             }
-            
+
             // Add event listeners for conversation loading events
             const loadConversationsButton = document.getElementById('load-conversations');
             if (loadConversationsButton) {
-                loadConversationsButton.addEventListener('click', function() {
+                loadConversationsButton.addEventListener('click', function () {
                     // After loading conversation, ensure copy button exists
                     setTimeout(setupCopyButton, 300);
                 });
             }
-            
+
             // Also handle new conversation creation
             const clearChatButton = document.getElementById('clear-chat');
             if (clearChatButton) {
-                clearChatButton.addEventListener('click', function() {
+                clearChatButton.addEventListener('click', function () {
                     setTimeout(setupCopyButton, 300);
                 });
             }
-            
+
             // Monitor for DOM changes in the chat container
             const chatContainer = document.querySelector('.chat-container');
             if (chatContainer && window.MutationObserver) {
-                const observer = new MutationObserver(function(mutations) {
+                const observer = new MutationObserver(function (mutations) {
                     // Check if messages were added or removed
                     let needsUpdate = false;
-                    
+
                     mutations.forEach(mutation => {
                         if (mutation.type === 'childList') {
                             needsUpdate = true;
                         }
                     });
-                    
+
                     if (needsUpdate) {
                         setupCopyButton();
                     }
                 });
-                
+
                 observer.observe(chatContainer, { childList: true, subtree: true });
             }
         });
+
     </script>
 </body>
 
