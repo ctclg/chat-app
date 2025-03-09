@@ -94,6 +94,9 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+environment = os.getenv("ENVIRONMENT")
+logger.info("environment: " + environment)
+
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"),)
 deepseek_client = OpenAI(api_key=os.getenv("DEEPSEEK_API_KEY"), base_url=os.getenv("DEEPSEEK_URL"))
@@ -108,6 +111,7 @@ database = cosmos_client.get_database_client("chat_app")
 usercontainer = database.get_container_client("users")
 conversationcontainer = database.get_container_client("conversations")
 tokencontainer = database.get_container_client("tokens")
+modelcontainer = database.get_container_client("models")
 systemmessagescontainer = database.get_container_client("system messages")
 
 # JWT Configuration
@@ -935,7 +939,7 @@ async def chat(
                 return JSONResponse(content={"error": str(e)}, status_code=500)
             
         # o1-mini only support the value 1 in the temperature parameter, and max_token is max_completion_tokens
-        if "o1-mini" in selectedmodel.lower():
+        if "-mini" in selectedmodel.lower():
             messages.pop(0) #Remove the first item in the list, as o1 does not accept the system role
             messages.pop() #Remove the last item in the list, because it is duplicate for some reason
             logger.info(f"o1-mini messages: {messages}")
@@ -951,7 +955,7 @@ async def chat(
                 })
 
         # o1-preview does not support the temperature parameter, and max_token is max_completion_tokens
-        if "o1-preview" in selectedmodel.lower():
+        if "o1" in selectedmodel.lower():
             messages.pop(0) #Remove the first item in the list, as o1 does not accept the system role
             messages.pop() #Remove the last item in the list, because it is duplicate for some reason
             logger.info(f"o1-preview messages: {messages}")
@@ -1015,13 +1019,53 @@ async def chat(
         logger.exception("Full exception details:")
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
-# Get available models
+# Define a function to get models from CosmosDB
+async def get_models_from_cosmos():
+    try:
+        # Query for models that should be shown in production
+        if environment == "development":
+            query = "SELECT * FROM c WHERE c.type = 'llm_model' order by c.vendor, c.label"            
+        else:
+            query = "SELECT * FROM c WHERE c.type = 'llm_model' AND c.show_in_prod = 'Yes' order by c.vendor, c.label"
+        logger.info(query)
+        items = list(modelcontainer.query_items(
+            query=query,
+            enable_cross_partition_query=True
+        ))
+        
+        # Sort models if needed (optional)
+        # items.sort(key=lambda x: x.get('label', ''))
+        
+        return items
+    except exceptions.CosmosHttpResponseError as e:
+        logger.error(f"CosmosDB error: {str(e)}")
+        return []
+    except Exception as e:
+        logger.error(f"Error retrieving models from CosmosDB: {str(e)}")
+        return []
+
+# Update the existing endpoint
 @app.get("/api/models")
 async def get_models():
-    models_json = os.getenv("AVAILABLE_MODELS", "[]")
-    models = json.loads(models_json)
-    logger.info(f"Available models: {models}")
-    return models
+    try:
+        models = await get_models_from_cosmos()
+        logger.info(f"Retrieved {len(models)} models from CosmosDB")
+        
+        # Remove internal fields that shouldn't be exposed to the client
+        for model in models:
+            # Remove CosmosDB system properties
+            for key in ['_rid', '_self', '_etag', '_attachments', '_ts']:
+                if key in model:
+                    del model[key]
+                    
+        return models
+    except Exception as e:
+        logger.error(f"Error in get_models: {str(e)}")
+        # Fallback to environment variable if CosmosDB fails
+        models_json = os.getenv("AVAILABLE_MODELS", "[]")
+        models = json.loads(models_json)
+        logger.info(f"Falling back to env var models: {models}")
+        return models
 
 # Save conversation
 @app.post("/api/conversations")

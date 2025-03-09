@@ -509,12 +509,144 @@ button:hover {
     width: 90%;
 }
 
+.text-muted {
+    color: #6c757d;
+    font-size: 0.875rem;
+    min-height: 63px;
+}
+
+#cost-info {
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    margin-top: 5px;
+}
+
+/* Custom Select Styles */
+.custom-select-container {
+    position: relative;
+    width: 100%;
+}
+
+.custom-select-button {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 8px 12px;
+    /*background-color: #fff;*/
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 14px;
+}
+
+.custom-select-button:hover {
+    border-color: #adb5bd;
+}
+
+.dropdown-arrow {
+    font-size: 0.8rem;
+    transition: transform 0.2s;
+}
+
+.custom-select-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 350px;
+    overflow-y: auto;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1001;
+    display: none;
+}
+
+.model-dropdown-header {
+    display: flex;
+    padding: 8px 12px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: bold;
+    font-size: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.model-option {
+    display: flex;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.model-option:hover {
+    background-color: #f8f9fa;
+}
+
+.model-option.selected {
+    background-color: #e9ecef;
+}
+
+.model-column {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.model-column.vendor {
+    width: 25%;
+    flex: 0 0 25%;
+}
+
+.model-column.name {
+    width: 25%;
+    flex: 0 0 25%;
+}
+
+.model-column.cost {
+    width: 25%;
+    flex: 0 0 25%;
+}
+
+.model-column.cutoff {
+    width: 25%;
+    flex: 0 0 25%;
+}
+
+.model-options-container {
+    max-height: 300px;
+    font-size: 12px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .model-column.cost, .model-column.cutoff {
+        display: none;
+    }
+    
+    .model-column.vendor {
+        width: 50%;
+        flex: 0 0 50%;
+    }
+    
+    .model-column.name {
+        width: 50%;
+        flex: 0 0 50%;
+    }
+}
+
 .form-group {
     margin-bottom: 15px;
 }
 
 .form-group label {
-    display: block;
+    display: inline-flex;
     margin-bottom: 5px;
     font-weight: bold;
 }
@@ -533,7 +665,7 @@ button:hover {
     border-radius: 5px;
     font-size: 12px;
     resize: none;
-    height: 200px;
+    height: 150px;
     padding: 7px;
 }
 
@@ -837,7 +969,7 @@ button:hover {
 
     .chat-messages {
         height: calc(100vh - 200px);
-        padding-left: 20px;
+        padding-left: 15px;
         padding-right: 20px;
     }
 
@@ -902,11 +1034,6 @@ button:hover {
 
 .form-group {
     margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
 }
 
 .form-group input {
@@ -1421,4 +1548,89 @@ button:hover {
 
 label.disabled {
     color: #999;
+}
+
+/* Style for label and icon container */
+.label-with-icon {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative; /* For tooltip positioning */
+}
+
+/* Make sure the label doesn't wrap or push the icon down */
+.label-with-icon label {
+    display: inline-block;
+    margin: 0; /* Remove any default margins */
+}
+
+/* Icon container */
+.icon-container {
+    display: inline-flex; /* Changed to inline-flex */
+    position: relative;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Info icon style */
+.info-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #007bff;
+    color: white;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Tooltip style */
+.tooltip {
+    visibility: hidden;
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    text-align: left;
+    padding: 8px 12px;
+    border-radius: 6px;
+    width: 255px; /* Adjust as needed */
+    font-size: 14px;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.3s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Arrow at the bottom of the tooltip */
+.tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+/* For desktop: Show the tooltip on hover */
+@media (hover: hover) {
+    .icon-container:hover .tooltip {
+        visibility: visible;
+        opacity: 1;
+    }
+}
+
+/* For mobile: Handle with click/tap - class added via JS */
+.tooltip-visible {
+    visibility: visible !important;
+    opacity: 1 !important;
 }

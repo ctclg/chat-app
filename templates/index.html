@@ -5,12 +5,10 @@
 
 <head>
     <meta charset="UTF-8">
-    <!--<meta name="viewport" content="width=device-width, initial-scale=1.0">-->
     <meta name="viewport"
         content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Chat Application</title>
     <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
-    <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">-->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/styles.css">
     <link rel="icon" type="image/png" href="/static/images/logo-favicon.png">
@@ -19,15 +17,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-javascript.min.js"></script>
 </head>
-<!-- 
-        <h1>Chat Application</h1>
-        <p>Welcome to the chat application! You can chat with the AI model by typing in the message box below. Press
-            "Enter" to send a message. You can also press "Shift + Enter" for a new line. Click on the "Settings" button
-            to change the model, system prompt, temperature, and max tokens. Click on the "New" button to start a new
-            conversation. Click on the "Save" button to save the conversation to a file. Click on the "Register" button
-            to register your email address for updates.</p>
--->
-
 <body>
     <div class="page-container">
         <!-- The Modal -->
@@ -38,14 +27,36 @@
                 <h3>Chat Settings</h3>
                 <form id="settings-form">
                     <div class="form-group">
-                        <label for="model-select">Model:</label>
-                        <select id="model-select"></select>
+                        <label for="model-select-button">Model:</label>
+                        <div class="custom-select-container">
+                            <button type="button" id="model-select-button" class="custom-select-button">
+                                <span id="selected-model-display">Select a model...</span>
+                                <span class="dropdown-arrow">▼</span>
+                            </button>
+                            <div id="model-dropdown" class="custom-select-dropdown">
+                                <div class="model-dropdown-header">
+                                    <div class="model-column vendor">Vendor</div>
+                                    <div class="model-column name">Model</div>
+                                    <div class="model-column cost">Cost (per 1M tokens)</div>
+                                    <div class="model-column cutoff">Knowledge Cutoff</div>
+                                </div>
+                                <select id="model-select" style="display: none;"></select>
+                                <div id="model-options-container" class="model-options-container">
+                                    <!-- Model options will be inserted here -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <small id="cost-info" class="text-muted"></small>
+                        <small id="cost-info" class="text-muted" style="display: block; margin-bottom: 15px;"></small>
                     </div>
                     <div class="form-group">
                         <label for="system-prompt">System Message:</label>
+                        <div class="icon-container">
+                            <i class="fas fa-info-circle info-icon" tabindex="0" role="button" aria-label="About system messages"></i>
+                            <span class="tooltip">For Claude models the system message is applied to the next message in a conversation.
+                                <br><br>For other models that support system messages it is only applied to new conversations.</span>
+                        </div>
                         <div class="system-prompt-container" style="position: relative;">
                             <div id="system-prompt-overlay" class="overlay-message">
                                 System message not supported for the selected model.
@@ -56,34 +67,16 @@
                         <div id="preset-description" class="preset-description" style="display: block;">Optionally
                             select system message from presets below.</div>
                         <div class="preset-selector">
-                            <!--<label for="system-preset-select" id="preset-label">Preset:</label>-->
                             <select id="system-preset-select">
                                 <option value="">Select a preset...</option>
-                                <!-- <option value="custom">Custom Message</option> -->
                                 <!-- Presets will be loaded here -->
                             </select>
                         </div>
                     </div>
-                    <p style="font-size: 12px; font-style: italic;">For Claude models the system message is applied to the next message in a conversation.
-For other models that support system messages it is only applied to new conversations.</p>
-                    <!--
-                    <div class="form-group">
-                        <label for="system-prompt">System Message:</label>
-                        <div class="system-prompt-container" style="position: relative;">
-                            <textarea id="system-prompt" class="system-prompt"
-                                rows="3">You are a helpful assistant.</textarea>
-                            <div id="system-prompt-overlay" class="overlay-message">
-                                System message not supported for the selected model.
-                            </div>
-                        </div>
-                        <p style="font-size: 12px; font-style: italic;">For Claude models the system message is applied to the next message in a conversation.<br>For other models that support system messages it is only applied to new conversations.</p>
-                    </div>
-                    -->
                     <div style="display: flex;">
                         <div class="form-group" style="width: 120px;">
                             <!--<label for="temperature">Temperature:</label>-->
-                            <input type="number" id="temperature" min="0" max="2" step="0.1" value="0.7"
-                                class="hidden-input">
+                            <input type="number" id="temperature" min="0" max="2" step="0.1" value="0.7" class="hidden-input">
                         </div>
                         <div class="form-group">
                             <!--<label for="max-tokens">Max Tokens:</label>-->
@@ -260,6 +253,22 @@ For other models that support system messages it is only applied to new conversa
                     }
                 }
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const infoIcon = document.querySelector('.info-icon');
+            const tooltip = document.querySelector('.tooltip');
+            
+            // For touch devices
+            infoIcon.addEventListener('click', function(e) {
+                tooltip.classList.toggle('tooltip-visible');
+                e.stopPropagation();
+            });
+            
+            // Close tooltip when clicking elsewhere
+            document.addEventListener('click', function() {
+                tooltip.classList.remove('tooltip-visible');
+            });
         });
 
         document.addEventListener('DOMContentLoaded', function () {

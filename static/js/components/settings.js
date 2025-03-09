@@ -11,6 +11,13 @@ export class Settings {
         this.temperature = document.getElementById('temperature');
         this.maxTokens = document.getElementById('max-tokens');
         
+
+        this.modelSelectButton = null;
+        this.modelDropdown = null;
+        this.selectedModelDisplay = null;
+        this.modelOptionsContainer = null;
+
+
         this.init();
         this.initializeElements();
     }
@@ -21,10 +28,19 @@ export class Settings {
         this.systemPrompt = document.getElementById('system-prompt');
         this.temperature = document.getElementById('temperature');
         this.maxTokens = document.getElementById('max-tokens');
+        
+        // New elements for custom dropdown
+        this.modelSelectButton = document.getElementById('model-select-button');
+        this.modelDropdown = document.getElementById('model-dropdown');
+        this.selectedModelDisplay = document.getElementById('selected-model-display');
+        this.modelOptionsContainer = document.getElementById('model-options-container');
+
 
         // Check if elements exist
         if (!this.modal || !this.modelSelect || !this.systemPrompt || 
-            !this.temperature || !this.maxTokens) {
+            !this.temperature || !this.maxTokens ||
+            !this.modelSelectButton || !this.modelDropdown || 
+            !this.selectedModelDisplay || !this.modelOptionsContainer) {
             console.error('Required settings elements not found');
             return;
         }
@@ -73,6 +89,29 @@ export class Settings {
         // System message preset selector
         document.getElementById('system-preset-select').addEventListener('change', 
             (e) => this.handleSystemPresetChange(e));
+
+        // Add custom dropdown event listeners
+        if (this.modelSelectButton) {
+            this.modelSelectButton.addEventListener('click', () => this.toggleModelDropdown());
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!this.modelSelectButton.contains(e.target) && 
+                    !this.modelDropdown.contains(e.target)) {
+                    this.modelDropdown.style.display = 'none';
+                    this.modelSelectButton.querySelector('.dropdown-arrow').style.transform = 'rotate(0deg)';
+                }
+            });
+        }
+    }
+
+    toggleModelDropdown() {
+        const isVisible = this.modelDropdown.style.display === 'block';
+        this.modelDropdown.style.display = isVisible ? 'none' : 'block';
+        
+        // Rotate arrow
+        const arrow = this.modelSelectButton.querySelector('.dropdown-arrow');
+        arrow.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
     }
 
     async setupSystemMessagePresets() {
@@ -131,30 +170,121 @@ export class Settings {
     }
 
     async loadModels() {
-        this.modelSelect.disabled = true;
         try {
-            const response = await fetch('/api/models');
-            if (!response.ok) {
-                throw new Error('Failed to fetch models');
+            // Disable the button during loading
+            if (this.modelSelectButton) {
+                this.modelSelectButton.disabled = true;
             }
-            const models = await response.json();
+            
+            const models = await SettingsApi.getModels();
+            
+            // Clear both the hidden select and the visible options container
             this.modelSelect.innerHTML = '';
+            this.modelOptionsContainer.innerHTML = '';
 
             models.forEach(model => {
+                // Add to hidden select for form submission
                 const option = document.createElement('option');
                 option.value = model.value;
                 option.textContent = model.label;
+                
+                // Store all model metadata as data attributes
                 option.dataset.systemPromptSupported = model.system_prompt_supported;
+                option.dataset.vendor = model.vendor;
+                option.dataset.contextWindow = model.context_window;
+                option.dataset.maxOutputTokens = model.max_output_tokens;
+                option.dataset.knowledgeCutoff = model.knowledge_cutoff;
+                option.dataset.costInput = model.cost_per_1m_tokens_input;
+                option.dataset.costOutput = model.cost_per_1m_tokens_output;
+                option.dataset.description = model.short_description;
+                option.dataset.longDescription = model.long_description;
+                
                 this.modelSelect.appendChild(option);
+                
+                // Create visible option row
+                const modelOption = document.createElement('div');
+                modelOption.className = 'model-option';
+                modelOption.dataset.value = model.value;
+                
+                // Format cost display
+                const costInput = parseFloat(model.cost_per_1m_tokens_input) || 0;
+                const costOutput = parseFloat(model.cost_per_1m_tokens_output) || 0;
+                const costDisplay = `$${costInput} in / $${costOutput} out`;
+                
+                // Create the four columns
+                modelOption.innerHTML = `
+                    <div class="model-column vendor">${model.vendor || 'Unknown'}</div>
+                    <div class="model-column name">${model.label}</div>
+                    <div class="model-column cost">${costDisplay}</div>
+                    <div class="model-column cutoff">${model.knowledge_cutoff || 'N/A'}</div>
+                `;
+                
+                // Add click handler
+                modelOption.addEventListener('click', () => {
+                    this.selectModel(model.value);
+                });
+                
+                this.modelOptionsContainer.appendChild(modelOption);
             });
 
             await this.loadSettings(false);
         } catch (error) {
             console.error('Error loading models:', error);
-            this.modelSelect.innerHTML = '<option disabled>Error loading models</option>';
+            this.modelOptionsContainer.innerHTML = '<div class="model-option">Error loading models</div>';
         } finally {
-            this.modelSelect.disabled = false;
+            if (this.modelSelectButton) {
+                this.modelSelectButton.disabled = false;
+            }
         }
+    }
+
+    selectModel(value) {
+        // Update hidden select
+        this.modelSelect.value = value;
+        
+        // Update visible selected item
+        const selectedOption = this.modelSelect.querySelector(`option[value="${value}"]`);
+        if (selectedOption) {
+            this.selectedModelDisplay.textContent = selectedOption.textContent;
+            
+            // Update selected class in dropdown
+            const options = this.modelOptionsContainer.querySelectorAll('.model-option');
+            options.forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.value === value);
+            });
+            
+            // Close dropdown
+            this.modelDropdown.style.display = 'none';
+            this.modelSelectButton.querySelector('.dropdown-arrow').style.transform = 'rotate(0deg)';
+            
+            // Trigger model change handler
+            this.handleModelChange();
+        }
+    }
+
+    updateModelInfo() {
+        if (!this.modelSelect) return;
+        
+        const selectedOption = this.modelSelect.querySelector('option:checked');
+        const costInfo = document.getElementById('cost-info');
+        
+        if (!selectedOption || !costInfo) return;
+        
+        // Get model information from data attributes
+        const vendor = selectedOption.dataset.vendor || 'Unknown';
+        const contextWindow = selectedOption.dataset.contextWindow || 'Unknown';
+        const maxOutputTokens = selectedOption.dataset.maxOutputTokens || 'Unknown';
+        const costInput = selectedOption.dataset.costInput || 'Unknown';
+        const costOutput = selectedOption.dataset.costOutput || 'Unknown';
+        const description = selectedOption.dataset.description || '';
+        const knowledgeCutoff = selectedOption.dataset.knowledgeCutoff || 'N/A';
+        
+        // Format cost information
+        let costInfoText = `<strong>${description}</strong><br>`;
+        costInfoText += `Vendor: ${vendor} | Context: ${Number(contextWindow).toLocaleString()} tokens | Max Output: ${Number(maxOutputTokens).toLocaleString()} tokens<br>`;
+        costInfoText += `Cost: $${costInput} per 1M input tokens | $${costOutput} per 1M output tokens | Knowledge Cutoff: ${knowledgeCutoff}`;
+        
+        costInfo.innerHTML = costInfoText;
     }
 
     handleModelChange() {
@@ -180,6 +310,9 @@ export class Settings {
         if (presetSelector) {
             presetSelector.disabled = !systemPromptSupported;
         }
+        
+        // Update model information display
+        this.updateModelInfo();
     }
 
     async loadSettings(showConfirmation = false) {
@@ -207,11 +340,24 @@ export class Settings {
         this.temperature.value = settings.temperature || DEFAULT_SETTINGS.temperature;
         this.maxTokens.value = settings.max_tokens || DEFAULT_SETTINGS.max_tokens;
         
+        // Update the visible selected model display
+        if (this.selectedModelDisplay) {
+            const selectedOption = this.modelSelect.querySelector('option:checked');
+            if (selectedOption) {
+                this.selectedModelDisplay.textContent = selectedOption.textContent;
+                
+                // Update selected class in dropdown
+                const options = this.modelOptionsContainer.querySelectorAll('.model-option');
+                options.forEach(opt => {
+                    opt.classList.toggle('selected', opt.dataset.value === settings.model);
+                });
+            }
+        }
+        
         // Reset preset selector
         const presetSelector = document.getElementById('system-preset-select');
         if (presetSelector) {
             presetSelector.value = '';
-            //document.getElementById('preset-description').style.display = 'none';
             document.getElementById('preset-description').textContent = 'Optionally select message from presets below.';
         }
         
