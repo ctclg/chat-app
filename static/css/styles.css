@@ -496,7 +496,7 @@ button:hover {
 /* New styles for settings */
 .settings-container {
     padding-top: 10px !important;
-    max-width: 800px;
+    max-width: 600px;
     margin: 20px auto 20px auto;
     background-color: white;
     padding: 20px;
@@ -506,7 +506,7 @@ button:hover {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 60%;
+    width: 90%;
 }
 
 .form-group {
@@ -528,12 +528,13 @@ button:hover {
 }
 
 .form-group textarea {
-    width: 98%;
+    width: 97%;
     border: 1px solid #dee2e6;
     border-radius: 5px;
     font-size: 12px;
-    resize: block;
-    min-height: 80px;
+    resize: none;
+    height: 200px;
+    padding: 7px;
 }
 
 .error {
@@ -789,7 +790,7 @@ button:hover {
     }
 
     .form-group textarea {
-        width: 93%;
+        width: 95%;
     }
 
     .chat-container {

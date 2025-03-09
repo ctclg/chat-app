@@ -83,12 +83,6 @@ export class Settings {
             // Clear existing options
             presetSelector.innerHTML = '<option value="">Select a preset...</option>';
             
-            // Add "Custom" option
-            //const customOption = document.createElement('option');
-            //customOption.value = "custom";
-            //customOption.textContent = "Custom Message";
-            //presetSelector.appendChild(customOption);
-            
             // Fetch categories
             const categories = await SystemMessageApi.getSystemMessageCategories();
             
@@ -122,13 +116,10 @@ export class Settings {
         const systemPrompt = document.getElementById('system-prompt');
         const presetDescription = document.getElementById('preset-description');
         
-        //if (selectedOption.value === 'custom' || !selectedOption.value) {
-            // For custom or empty selection, don't change the text
-        //    presetDescription.textContent = 'Enter a custom system message.';
-        //    presetDescription.style.display = 'block';
-        //    systemPrompt.value = '';
-        //    return;
-        //}
+        if (selectedOption.value === 'custom' || !selectedOption.value) {
+            presetDescription.textContent = 'Optionally select message from presets below.';
+            return;
+        }
         
         // Update the system prompt with the selected preset
         systemPrompt.value = selectedOption.dataset.message || '';
@@ -136,9 +127,6 @@ export class Settings {
         // Show description if available
         if (selectedOption.dataset.description) {
             presetDescription.textContent = selectedOption.dataset.description;
-            presetDescription.style.display = 'block';
-        } else {
-            presetDescription.style.display = 'block';
         }
     }
 
@@ -191,7 +179,6 @@ export class Settings {
         // Update preset selector
         if (presetSelector) {
             presetSelector.disabled = !systemPromptSupported;
-            //document.getElementById('preset-label').classList.toggle('disabled', !systemPromptSupported);
         }
     }
 
@@ -225,7 +212,7 @@ export class Settings {
         if (presetSelector) {
             presetSelector.value = '';
             //document.getElementById('preset-description').style.display = 'none';
-            document.getElementById('preset-description').textContent = 'Optionally select system message from presets below.';
+            document.getElementById('preset-description').textContent = 'Optionally select message from presets below.';
         }
         
         // Only call handleModelChange if elements exist
