@@ -146,7 +146,7 @@ models = [
     "short_description": "An older high-intelligence GPT model",
     "context_window": 128000,
     "max_output_tokens": 4096,
-    "knowledge_cutoff": "1023-12-01",
+    "knowledge_cutoff": "2023-12-01",
     "cost_per_1m_tokens_input": 10.00,
     "cost_per_1m_tokens_output": 30.00,
     "default_model": "gpt-4-turbo-2024-04-09",
