@@ -1590,6 +1590,44 @@ async def debug_test():
     logger.info("="*50)
     return {"status": "ok", "message": "Debug endpoint working"}
 
+def get_cosmos_client():
+    try:
+        client = cosmos_client
+        yield client
+    except Exception as e:
+        print(f"Error creating Cosmos DB client: {e}")
+        raise
+
+# Health Check Endpoint
+@app.get("/healthz", status_code=status.HTTP_200_OK)
+async def health_check(cosmos_client: CosmosClient = Depends(get_cosmos_client)):
+    """
+    Health check endpoint.  Checks Cosmos DB connectivity.
+    """
+    try:
+        # Try to access the database and container to check connectivity
+        #cosmos_client = CosmosClient.from_connection_string(os.getenv("COSMOS_CONNECTION_STRING"))
+        database = cosmos_client.get_database_client("chat_app")
+        container = database.get_container_client("users")
+
+        # Perform a simple read operation (e.g., get one item) to validate connectivity
+        try:
+            items = list(container.read_all_items(max_item_count=1))  # Adjust as needed. Reading 1 item is a good test.
+            if not items:
+                print("Health check: No items found in container.  Assuming healthy connection, but container might be empty.")
+        except exceptions.CosmosResourceNotFoundError as e:
+            print(f"Health check: Container not found: {e}")
+            return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"status": "unhealthy", "error": "Container not found"})
+
+        return {"status": "healthy"}
+
+    except exceptions.CosmosHttpResponseError as e:
+        print(f"Health check failed: Cosmos DB connection error: {e}")
+        return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"status": "unhealthy", "error": str(e)})
+    except Exception as e:
+        print(f"Health check failed: Unexpected error: {e}")
+        return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"status": "unhealthy", "error": str(e)})
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "8000"))
