@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Conversation View</title>
+    <style>
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+        }
+
+        .user {
+            background-color: #e0f7fa; /* Light cyan */
+            text-align: right;
+        }
+
+        .assistant {
+            background-color: #f1f8e9; /* Light green */
+            text-align: left;
+        }
+
+        .system {
+            background-color: #eeeeee;
+            font-style: italic;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Conversation</h1>
+    <div id="conversation">
+        <!-- Messages will be displayed here -->
+    </div>
+
+    <script>
+        async function fetchConversation() {
+            const conversationDiv = document.getElementById("conversation");
+            const conversationId = getConversationIdFromUrl();
+
+            try {
+                const response = await fetch(`/api/public-conversations/${conversationId}`); // Adjust the API endpoint
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const responseData = await response.json(); // Get the list
+                const conversation = responseData[0]; // Extract the first (and only) conversation object
+                console.log("Fetched conversation:", conversation);
+                displayConversation(conversation);
+
+            } catch (error) {
+                console.error("Could not fetch conversation:", error);
+                conversationDiv.innerText = "Error loading conversation.";
+            }
+        }
+
+        function getConversationIdFromUrl() {
+            const pathSegments = window.location.pathname.split('/');
+            return pathSegments[pathSegments.length - 1];  // Last segment is the ID
+        }
+
+        function displayConversation(conversation) {
+            const conversationDiv = document.getElementById("conversation");
+
+            if (!conversation) {
+                console.log("Conversation is null or undefined!");
+            }
+            if (!conversation.messages) {
+                console.log("Conversation.messages is null or undefined!");
+            }
+
+            if (!conversation || !conversation.messages) {
+                conversationDiv.innerText = "No conversation data found.";
+                return;
+            }
+
+            conversation.messages.forEach(message => {
+                const messageDiv = document.createElement("div");
+                messageDiv.classList.add("message", message.role); // Add classes for styling
+
+                const timestamp = new Date(message.timestamp).toLocaleString();
+                messageDiv.innerHTML = `<p><strong>${message.role.toUpperCase()} (${timestamp}):</strong></p><p>${message.content}</p>`;
+                conversationDiv.appendChild(messageDiv);
+            });
+        }
+
+        // Call fetchConversation when the page loads
+        window.onload = fetchConversation;
+    </script>
+</body>
+</html>

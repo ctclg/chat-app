@@ -1,4 +1,6 @@
 #main.py
+#start with: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+#see docs: http://127.0.0.1:8001/docs
 
 import json, logging, openai, os, re, secrets, uuid, anthropic, asyncio
 from azure.cosmos import CosmosClient, PartitionKey, exceptions
@@ -101,6 +103,7 @@ openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"),)
 deepseek_client = OpenAI(api_key=os.getenv("DEEPSEEK_API_KEY"), base_url=os.getenv("DEEPSEEK_URL"))
 google_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+llama_client = OpenAI(api_key=os.getenv("LLAMA_API_KEY"), base_url=os.getenv("LLAMA_URL"))
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -998,6 +1001,21 @@ async def chat(
                 "response": response.choices[0].message.content
                 })
 
+        if "llama" in selectedmodel.lower():
+            logger.info(f"llama messages: {messages}")
+            messages.pop() #Remove the last item in the list, because it is duplicated
+            logger.info(f"llama messages: {messages}")
+            response = llama_client.chat.completions.create(
+                model=selectedmodel, 
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            logger.info(f"llama response: {response}")
+            return JSONResponse(content={
+                "response": response.choices[0].message.content
+                })
+
         if "claude" in selectedmodel.lower():
             messages.pop(0) #Remove the first item in the list, as claude does not accept the system role
             messages.pop() #Remove the last item in the list, because it is duplicated
@@ -1167,6 +1185,86 @@ async def update_conversation(
                 detail=f"Failed to update conversation: {str(e)}"
             )
 
+@app.put("/api/publish-conversation/{conversation_id}")
+async def publish_conversation(
+    conversation_id: str,
+    request: dict,
+    current_user = Depends(get_current_user)
+):
+    try:
+        # Check if conversation exists
+        partition_key = f'CHAT#{current_user["id"]}'
+        conversation = conversationcontainer.read_item(
+            item=conversation_id,
+            partition_key=partition_key
+        )
+        
+        conversation['published'] = request['published']
+        conversation['magiclink'] = request['magiclink']
+        conversation['published_at'] = datetime.utcnow().isoformat()
+        
+        result = conversationcontainer.replace_item(
+            item=conversation_id,
+            body=conversation
+        )
+        
+        return result
+
+    except Exception as e:
+        logger.error(f"Error publishing conversation: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to publish conversation"
+        )
+
+# Serve public conversation page
+@app.get("/public-conversation/{conversation_id}", response_class=HTMLResponse)
+async def get_public_conversation_page(request: Request, conversation_id: str):
+    """
+    Serves the HTML page for displaying a conversation.
+    """
+    try:
+        # You might want to validate here that the conversation exists and is published
+        # before serving the page, to avoid showing the page for unauthorized conversations.
+        # However, you can also handle this in the JavaScript code in the HTML page.
+
+        return templates.TemplateResponse(
+            "conversation.html",  # Or whatever you name your HTML file
+            {"request": request, "conversation_id": conversation_id}
+        )
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error.")
+
+# Get public conversation
+@app.get("/api/public-conversations/{conversation_id}")
+async def get_public_conversation(
+    conversation_id: str
+):
+
+    try:
+        query = f"SELECT * FROM c WHERE c.id = @id and c.type = 'conversation' and c.published = true"
+        parameters = [
+            {"name": "@id", "value": conversation_id}
+        ]
+        conversation = list(conversationcontainer.query_items(
+            query=query,
+            parameters=parameters,
+            enable_cross_partition_query=True
+        ))
+
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation not found or not published.")
+
+        return conversation
+
+    except Exception as e:
+        logger.error(f"Error retrieving conversation: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve conversation: {str(e)}"
+        )
+
 # Delete conversation
 @app.delete("/api/conversations/{conversation_id}")
 async def delete_conversation(
@@ -1234,7 +1332,8 @@ async def get_conversations(current_user = Depends(get_current_user)):
     try:
         query = """
         SELECT 
-         c.id, c.partitionKey, c.user_id, c.name, c.folder, c.created_at, c.updated_at, c.type,
+         c.id, c.partitionKey, c.user_id, c.name, c.folder, c.published, c.magiclink,
+         c.created_at, c.updated_at, c.type,
          c.id as messages, c._rid, c._self, c._etag, c._attachments, c._ts, ARRAY_LENGTH(
         ARRAY(
             SELECT VALUE m 

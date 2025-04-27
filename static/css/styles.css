@@ -43,6 +43,38 @@ p {
     max-height: 30px;
 }
 
+.top-section .button-container {
+    display: flex;
+    gap: 10px; /* Adjust as needed */
+}
+
+.top-section button {
+    background-color: #007bff; 
+    border: none;
+    color: white;
+    padding: 5px 5px; /* Adjust padding to control button size */
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 12px;
+    margin: 0px 0px;
+    cursor: pointer;
+    border-radius: 5px; /* Rounded corners */
+    min-width: 30px; 
+    margin-right: 0px !Important;
+}
+
+.top-section button:hover {
+    background-color: #0056b3;
+}
+
+.top-section button i {
+    /* Style the icon itself (size, margin, etc.) */
+    font-size: 1.2em; /* Adjust icon size */
+    margin-right: 0px; /* Adjust spacing between icon and text (if any) */
+    vertical-align: middle;
+}
+
 .subtop-section {
     background-color: gray;
     color: #fff;
@@ -408,8 +440,8 @@ p {
 
 .expand-icon {
     position: absolute;
-    top: 12px;
-    right: 9px;
+    top: 8px;
+    right: -14px;
     cursor: pointer;
     background: transparent;
     padding: 2px;
@@ -967,6 +999,10 @@ button:hover {
         display: none;
     }
 
+    .conversation-actions {
+        opacity: 1 !important;
+    }
+
     .chat-messages {
         height: calc(100vh - 200px);
         padding-left: 15px;
@@ -1177,18 +1213,23 @@ button:hover {
     opacity: 1;
 }
 
+.publish-btn,
+.manage-published-btn,
 .rename-btn,
 .delete-btn {
     background: none;
-    min-width: 20px !important;
+    min-width: 30px !important;
     border: none;
     padding: 4px 8px;
     cursor: pointer;
     color: #666;
     transition: color 0.2s;
     display: block;
+    font-size: 16px;
 }
 
+.publish-btn:hover,
+.manage-published-btn:hover,
 .rename-btn:hover {
     color: #007bff;
     background: none !important;
