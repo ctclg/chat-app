@@ -19,6 +19,34 @@ now = datetime.utcnow().isoformat() + "Z"
 
 models = [
   {
+    "id": "llama3.3-70b",
+    "value": "llama3.3-70b",
+    "label": "Llama 3.3",
+    "vendor": "Meta",
+    "system_prompt_supported": "Yes",
+    "short_description": "Llama 3.3 70B Instruct, developed by Meta, is a multilingual, instruction-tuned large language model optimized for dialogue use cases.",
+    "context_window": 128000,
+    "max_output_tokens": 2048,
+    "knowledge_cutoff": "December 2023",
+    "cost_per_1m_tokens_input": 2.80,
+    "cost_per_1m_tokens_output": 2.80,
+    "default_model": "llama3.3-70b",
+    "long_description": "The Meta Llama 3.3 multilingual large language model (LLM) is an instruction tuned generative model in 70B (text in/text out). The Llama 3.3 instruction tuned text only model is optimized for multilingual dialogue use cases and outperforms many of the available open source and closed chat models on common industry benchmarks.",
+    "type": "llm_model",
+    "show_in_prod": "Yes"
+  }
+]
+
+for message in models:
+    container.create_item(body=message)
+
+print(f"Added {len(models)} models to the container")
+
+
+
+
+addedModels = [
+  {
     "id": "claude-3-5-sonnet-20241022",
     "value": "claude-3-5-sonnet-20241022",
     "label": "Claude 3.5 Sonnet",
@@ -257,8 +285,3 @@ models = [
     "show_in_prod": "Yes"
   }
 ]
-
-for message in models:
-    container.create_item(body=message)
-
-print(f"Added {len(models)} models to the container")

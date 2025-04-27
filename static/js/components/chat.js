@@ -41,13 +41,17 @@ export class Chat {
             }, 1000);
 
             const currentConversation = localStorage.getItem('currentConversation');
+            const currentFolder = localStorage.getItem('currentFolder');
             if (!currentConversation) {
                 localStorage.setItem('currentConversation', "New");
                 document.getElementById('current-chat').innerHTML = "Conversation: New";
             } else {
                 const touched = localStorage.getItem('currentConversationTouched');
-                document.getElementById('current-chat').innerHTML = 
-                    `Conversation: ${currentConversation}${touched === "true" ? " *" : ""}`;
+                if (currentFolder) {
+                    document.getElementById('current-chat').innerHTML = `Conversation: ${currentFolder} / ${currentConversation}${touched === "true" ? " *" : ""}`;
+                } else {  
+                    document.getElementById('current-chat').innerHTML = `Conversation: ${currentConversation}${touched === "true" ? " *" : ""}`;
+                }
             }
 
             this.messageInput.focus();
@@ -437,9 +441,12 @@ export class Chat {
 
     markConversationAsTouched() {
         const currentConversation = localStorage.getItem('currentConversation');
+        const currentFolder = localStorage.getItem('currentFolder');
         localStorage.setItem('currentConversationTouched', "true");
-        document.getElementById('current-chat').innerHTML = 
-            `Conversation: ${currentConversation} *`;
+        if (currentFolder)
+            document.getElementById('current-chat').innerHTML = `Conversation: ${currentFolder} / ${currentConversation} *`;
+        else
+            document.getElementById('current-chat').innerHTML = `Conversation: ${currentConversation} *`;
     }
 
     addCopyButtonToCodeBlocks() {

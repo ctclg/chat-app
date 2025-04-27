@@ -100,7 +100,7 @@
             errorMessage.style.display = 'none';
 
             try {
-                console.log('Attempting login for:', email);
+                //console.log('Attempting login for:', email);
 
                 const response = await fetch('/api/token', {
                     method: 'POST',
@@ -110,9 +110,9 @@
                     body: `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
                 });
 
-                console.log('Login response status:', response.status);
+                //console.log('Login response status:', response.status);
                 const data = await response.json();
-                console.log('Login response:', data);
+                //console.log('Login response:', data);
 
                 if (!response.ok) {
                     throw new Error(data.detail || 'Login failed');
